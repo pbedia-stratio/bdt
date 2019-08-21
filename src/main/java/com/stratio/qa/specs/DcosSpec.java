@@ -904,7 +904,7 @@ public class DcosSpec extends BaseGSpec {
      * @param envVar environment variable where to store retrieved information
      * @throws Exception
      */
-    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KRB_HOST|LDAP_HOST|VAULT_HOST|ADMIN_USER|TENANT|ACCESS_POINT)' from descriptor and save it in environment variable '(.+?)'$")
+    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KRB_HOST|LDAP_HOST|VAULT_HOST|ADMIN_USER|TENANT|ACCESS_POINT|LDAP_URL|LDAP_PORT|LDAP_USER_DN|LDAP_GROUP_DN|LDAP_BASE|LDAP_ADMIN_GROUP)' from descriptor and save it in environment variable '(.+?)'$")
     public void obtainInfoFromDescriptor(String info, String envVar) throws Exception {
         String jqExpression = "";
 
@@ -966,6 +966,24 @@ public class DcosSpec extends BaseGSpec {
             case "ACCESS_POINT":
                 jqExpression = "jq -crM .proxyAccessPointURL | sed 's/https:\\/\\///g'";
                 break;
+            case "LDAP_URL":
+                jqExpression = "jq -crM .security.ldap.url";
+                break;
+            case "LDAP_PORT":
+                jqExpression = "jq -crM .security.ldap.port";
+                break;
+            case "LDAP_USER_DN":
+                jqExpression = "jq -crM .security.ldap.userDn";
+                break;
+            case "LDAP_GROUP_DN":
+                jqExpression = "jq -crM .security.ldap.groupDN";
+                break;
+            case "LDAP_BASE":
+                jqExpression = "jq -crM .security.ldap.ldapBase";
+                break;
+            case "LDAP_ADMIN_GROUP":
+                jqExpression = "jq -crM .security.ldap.adminrouterAuthorizedGroup";
+                break;
             default:
                 break;
         }
@@ -977,6 +995,7 @@ public class DcosSpec extends BaseGSpec {
     /**
      * Obtains basic information for tests from descriptor file:
      * EOS_CLUSTER_ID, EOS_DNS_SEARCH, EOS_INTERNAL_DOMAIN, DCOS_USER, DCOS_TENANT, VAULT_TOKEN
+     * LDAP_URL, LDAP_PORT, LDAP_USER_DN, LDAP_GROUP_DN, LDAP_BASE, LDAP_ADMIN_GROUP
      *
      * @throws Exception
      */
@@ -1002,5 +1021,28 @@ public class DcosSpec extends BaseGSpec {
         obtainInfoFromFile(vaultTokenJQ, this.vaultResponsePath, varVaultToken);
         obtainInfoFromDescriptor("PUBLIC_NODE", varPublicNode);
         obtainInfoFromDescriptor("ACCESS_POINT", varAccessPoint);
+    }
+
+    /**
+     * Obtains basic LDAP information for tests from descriptor file:
+     * LDAP_URL, LDAP_PORT, LDAP_USER_DN, LDAP_GROUP_DN, LDAP_BASE, LDAP_ADMIN_GROUP
+     *
+     * @throws Exception
+     */
+    @Given("^I obtain basic LDAP information from bootstrap$")
+    public void obtainBasicLDAPInfoFromDescriptor() throws Exception {
+        String varLDAPurl = "LDAP_URL";
+        String varLDAPport = "LDAP_PORT";
+        String varLDAPuserDn = "LDAP_USER_DN";
+        String varLDAPgroupDn = "LDAP_GROUP_DN";
+        String varLDAPbase = "LDAP_BASE";
+        String varLDAPadminGroup = "LDAP_ADMIN_GROUP";
+
+        obtainInfoFromDescriptor("LDAP_URL", varLDAPurl);
+        obtainInfoFromDescriptor("LDAP_PORT", varLDAPport);
+        obtainInfoFromDescriptor("LDAP_USER_DN", varLDAPuserDn);
+        obtainInfoFromDescriptor("LDAP_GROUP_DN", varLDAPgroupDn);
+        obtainInfoFromDescriptor("LDAP_BASE", varLDAPbase);
+        obtainInfoFromDescriptor("LDAP_ADMIN_GROUP", varLDAPadminGroup);
     }
 }
