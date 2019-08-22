@@ -63,9 +63,9 @@ public class DcosSpec extends BaseGSpec {
      * @param password   (required if pemFile null)
      * @throws Exception exception
      */
-    @Given("^I authenticate to DCOS cluster '(.+?)' using email '(.+?)' with user '(.+?)' and password '(.+?)'$")
-    public void authenticateDCOSpassword(String remoteHost, String email, String user, String password) throws Exception {
-        authenticateDCOS(remoteHost, email, user, password, null);
+    @Given("^I authenticate to DCOS cluster '(.+?)' using email '(.+?)' with user '(.+?)' and password '(.+?)'( over SSH port '(.+?)')?$")
+    public void authenticateDCOSpassword(String remoteHost, String email, String user, String password, String remotePort) throws Exception {
+        authenticateDCOS(remoteHost, email, user, password, null, remotePort);
     }
 
     /**
@@ -77,9 +77,9 @@ public class DcosSpec extends BaseGSpec {
      * @param pemFile    (required if password null)
      * @throws Exception exception
      */
-    @Given("^I authenticate to DCOS cluster '(.+?)' using email '(.+?)' with user '(.+?)' and pem file '(.+?)'$")
-    public void authenticateDCOSpem(String remoteHost, String email, String user, String pemFile) throws Exception {
-        authenticateDCOS(remoteHost, email, user, null, pemFile);
+    @Given("^I authenticate to DCOS cluster '(.+?)' using email '(.+?)' with user '(.+?)' and pem file '(.+?)'( over SSH port '(.+?)')?$")
+    public void authenticateDCOSpem(String remoteHost, String email, String user, String pemFile, String remotePort) throws Exception {
+        authenticateDCOS(remoteHost, email, user, null, pemFile, remotePort);
     }
 
     /**
@@ -92,8 +92,8 @@ public class DcosSpec extends BaseGSpec {
      * @param pemFile    (required if password null)
      * @throws Exception exception
      */
-    private void authenticateDCOS(String remoteHost, String email, String user, String password, String pemFile) throws Exception {
-        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(user, password, remoteHost, pemFile));
+    private void authenticateDCOS(String remoteHost, String email, String user, String password, String pemFile, String remotePort) throws Exception {
+        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(user, password, remoteHost, remotePort, pemFile));
         commonspec.getRemoteSSHConnection().runCommand("sudo cat /var/lib/dcos/dcos-oauth/auth-token-secret");
         String DCOSsecret = commonspec.getRemoteSSHConnection().getResult().trim();
         setDCOSCookie(DCOSsecret, email);
