@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.13.0 (upcoming)
+
+* Pending changelog
+
 ## 0.12.0 (upcoming)
 
 * [QATM-2490] Save service response in environment variable without File parameters
