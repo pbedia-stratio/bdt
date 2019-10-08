@@ -16,7 +16,6 @@
 
 package com.stratio.qa.cucumber.testng;
 
-import com.stratio.qa.utils.StepException;
 import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.PickleStepTestStep;
 import cucumber.api.Result;
@@ -26,8 +25,6 @@ import cucumber.api.event.EventListener;
 import cucumber.api.formatter.StrictAware;
 import cucumber.runtime.CucumberException;
 import cucumber.runtime.Utils;
-import cucumber.runtime.io.URLOutputStream;
-import cucumber.runtime.io.UTF8OutputStreamWriter;
 import gherkin.pickles.*;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -45,11 +42,11 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 public class CucumberReporter implements EventListener, StrictAware {
 
@@ -127,17 +124,14 @@ public class CucumberReporter implements EventListener, StrictAware {
      * @param cClass class
      * @throws IOException exception
      */
-    public CucumberReporter(String url, String cClass, String additional) throws IOException {
-        URLOutputStream urlOS = null;
+    public CucumberReporter(String url, String cClass) throws IOException {
         try {
-            urlOS = new URLOutputStream(Utils.toURL(url + cClass + additional + "TESTNG.xml"));
-            this.writer = new UTF8OutputStreamWriter(urlOS);
+            this.writer = new OutputStreamWriter(new FileOutputStream(url + cClass + "TESTNG.xml"), Charset.forName("UTF-8"));
         } catch (Exception e) {
             logger.error("error writing TESTNG.xml file", e);
         }
         try {
-            urlOS = new URLOutputStream(Utils.toURL(url + cClass + additional + "JUNIT.xml"));
-            this.writerJunit = new UTF8OutputStreamWriter(urlOS);
+            this.writerJunit = new OutputStreamWriter(new FileOutputStream(url + cClass + "JUNIT.xml"), Charset.forName("UTF-8"));
         } catch (Exception e) {
             logger.error("error writing JUNIT.xml file", e);
         }
@@ -207,24 +201,6 @@ public class CucumberReporter implements EventListener, StrictAware {
             testMethod.results.add(event.result);
         } else {
             testMethod.hooks.add(event.result);
-        }
-        if (event.result.getStatus() == Result.Type.FAILED) {
-            StringBuilder stepFailedText = new StringBuilder();
-            stepFailedText.append("STEP FAILED!!!");
-            if (StepException.INSTANCE.getException() != null) {
-                stepFailedText.append(" - ").append(StepException.INSTANCE.getException().getClass().getCanonicalName());
-                if (StepException.INSTANCE.getException().getMessage() != null) {
-                    stepFailedText.append(": ").append(StepException.INSTANCE.getException().getMessage());
-                }
-                try {
-                    StackTraceElement[] elements = StepException.INSTANCE.getException().getStackTrace();
-                    stepFailedText.append(" | ").append(elements[0]);
-                } catch (Exception ignore) {
-                }
-            } else {
-                StepException.INSTANCE.setException(new Exception("FAILED SCENARIO"));
-            }
-            logger.error(stepFailedText.toString());
         }
     }
 

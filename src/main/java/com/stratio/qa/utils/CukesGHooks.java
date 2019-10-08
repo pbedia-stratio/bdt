@@ -20,14 +20,14 @@ import com.stratio.qa.cucumber.testng.TestSourcesModel;
 import com.stratio.qa.cucumber.testng.TestSourcesModelUtil;
 import com.stratio.qa.specs.BaseGSpec;
 import com.stratio.qa.specs.HookGSpec;
+import cucumber.api.PickleStepTestStep;
+import cucumber.api.Result;
 import cucumber.api.TestCase;
 import cucumber.api.event.*;
-import cucumber.api.event.EventListener;
-import cucumber.api.formatter.StrictAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CukesGHooks extends BaseGSpec implements EventListener, StrictAware {
+public class CukesGHooks extends BaseGSpec implements ConcurrentEventListener {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getCanonicalName());
 
@@ -59,6 +59,13 @@ public class CukesGHooks extends BaseGSpec implements EventListener, StrictAware
         }
     };
 
+    private EventHandler<TestStepFinished> stepFinishedHandler = new EventHandler<TestStepFinished>() {
+        @Override
+        public void receive(TestStepFinished event) {
+            handleTestStepFinished(event);
+        }
+    };
+
     private EventHandler<TestCaseFinished> caseFinishedHandler = new EventHandler<TestCaseFinished>() {
         @Override
         public void receive(TestCaseFinished event) {
@@ -72,10 +79,7 @@ public class CukesGHooks extends BaseGSpec implements EventListener, StrictAware
         publisher.registerHandlerFor(TestCaseStarted.class, caseStartedHandler);
         publisher.registerHandlerFor(TestCaseFinished.class, caseFinishedHandler);
         publisher.registerHandlerFor(TestStepStarted.class, stepStartedHandler);
-    }
-
-    @Override
-    public void setStrict(boolean strict) {
+        publisher.registerHandlerFor(TestStepFinished.class, stepFinishedHandler);
     }
 
     private void handleTestSourceRead(TestSourceRead event) {
@@ -94,20 +98,44 @@ public class CukesGHooks extends BaseGSpec implements EventListener, StrictAware
 
     private void handleTestStepStarted(TestStepStarted event) {
         if (HookGSpec.loggerEnabled) {
-            if (!event.testStep.isHook()) {
-                TestSourcesModel.AstNode astNode = TestSourcesModelUtil.INSTANCE.getTestSourcesModel().getAstNode(currentFeatureFile, event.testStep.getStepLine());
-                if (TestSourcesModel.isBackgroundStep(astNode)) {
-                    if (!isLastStepBackground) {
-                        logger.info(" Background:");
+            if (event.testStep instanceof PickleStepTestStep) {
+                PickleStepTestStep testStep = (PickleStepTestStep) event.testStep;
+                TestSourcesModel.AstNode astNode = TestSourcesModelUtil.INSTANCE.getTestSourcesModel().getAstNode(currentFeatureFile, testStep.getStepLine());
+                if (astNode != null) {
+                    if (TestSourcesModel.isBackgroundStep(astNode)) {
+                        if (!isLastStepBackground) {
+                            logger.info(" Background:");
+                        }
+                        isLastStepBackground = true;
+                    } else {
+                        if (isLastStepBackground) {
+                            logger.info(" Steps:");
+                        }
+                        isLastStepBackground = false;
                     }
-                    isLastStepBackground = true;
-                } else {
-                    if (isLastStepBackground) {
-                        logger.info(" Steps:");
-                    }
-                    isLastStepBackground = false;
                 }
             }
+        }
+    }
+
+    private void handleTestStepFinished(TestStepFinished event) {
+        if (event.result.getStatus() == Result.Type.FAILED) {
+            StringBuilder stepFailedText = new StringBuilder();
+            stepFailedText.append("STEP FAILED!!!");
+            if (StepException.INSTANCE.getException() != null) {
+                stepFailedText.append(" - ").append(StepException.INSTANCE.getException().getClass().getCanonicalName());
+                if (StepException.INSTANCE.getException().getMessage() != null) {
+                    stepFailedText.append(": ").append(StepException.INSTANCE.getException().getMessage());
+                }
+                try {
+                    StackTraceElement[] elements = StepException.INSTANCE.getException().getStackTrace();
+                    stepFailedText.append(" | ").append(elements[0]);
+                } catch (Exception ignore) {
+                }
+            } else {
+                StepException.INSTANCE.setException(new Exception("FAILED SCENARIO"));
+            }
+            logger.error(stepFailedText.toString());
         }
     }
 

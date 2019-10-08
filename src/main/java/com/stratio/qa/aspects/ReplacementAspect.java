@@ -16,6 +16,7 @@
 
 package com.stratio.qa.aspects;
 
+import com.stratio.qa.cucumber.runner.Glue;
 import com.stratio.qa.cucumber.testng.CucumberReporter;
 import com.stratio.qa.cucumber.testng.TestSourcesModelUtil;
 import com.stratio.qa.exceptions.NonReplaceableException;
@@ -27,8 +28,11 @@ import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.PickleStepTestStep;
 import cucumber.api.Result.Type;
 import cucumber.api.Scenario;
+import cucumber.runner.AmbiguousStepDefinitionsException;
 import cucumber.runner.EventBus;
-import cucumber.runtime.*;
+import cucumber.runtime.Backend;
+import cucumber.runtime.RuntimeOptions;
+import cucumber.runtime.StepDefinitionMatch;
 import gherkin.events.PickleEvent;
 import gherkin.pickles.*;
 import gherkin.pickles.Argument;
@@ -65,16 +69,19 @@ public class ReplacementAspect {
     private String lastEchoedStep = "";
 
     @Pointcut("execution (cucumber.runner.Runner.new(..)) && "
-            + "args (glue, bus, backends, runtimeOptions)")
-    protected void runnerInit(Glue glue, EventBus bus, Collection<? extends Backend> backends, RuntimeOptions runtimeOptions) {
+            + "args (bus, backends, runtimeOptions)")
+    protected void runnerInit(EventBus bus, Collection<? extends Backend> backends, RuntimeOptions runtimeOptions) {
     }
 
-    @After(value = "runnerInit(glue, bus, backends, runtimeOptions)")
-    public void runnerInitGlue(JoinPoint jp, Glue glue, EventBus bus, Collection<? extends Backend> backends, RuntimeOptions runtimeOptions) throws Throwable {
-        this.glue = glue;
+    @After(value = "runnerInit(bus, backends, runtimeOptions)")
+    public void runnerInitGlue(JoinPoint jp, EventBus bus, Collection<? extends Backend> backends, RuntimeOptions runtimeOptions) throws Throwable {
+        glue = new Glue(bus);
+        for (Backend backend : backends) {
+            backend.loadGlue(glue, runtimeOptions.getGlue());
+        }
     }
 
-    @Pointcut("execution (* cucumber.runtime.DefaultSummaryPrinter.printSnippets(..))")
+    @Pointcut("execution (* cucumber.runtime.formatter.DefaultSummaryPrinter.printSnippets(..))")
     protected void print() {
     }
 
@@ -119,12 +126,12 @@ public class ReplacementAspect {
     }
 
     @Pointcut("execution (* cucumber.runner.TestStep.executeStep(..)) && "
-            + "args (language, scenario, skipSteps)")
-    protected void replacementStar(String language, Scenario scenario, boolean skipSteps) {
+            + "args (scenario, skipSteps)")
+    protected void replacementStar(Scenario scenario, boolean skipSteps) {
     }
 
-    @Around(value = "replacementStar(language, scenario, skipSteps)")
-    public Type aroundReplacementStar(ProceedingJoinPoint pjp, String language, Scenario scenario, boolean skipSteps) throws Throwable {
+    @Around(value = "replacementStar(scenario, skipSteps)")
+    public Type aroundReplacementStar(ProceedingJoinPoint pjp, Scenario scenario, boolean skipSteps) throws Throwable {
         if (pjp.getTarget() instanceof PickleStepTestStep) {
             if (StepException.INSTANCE.getException() != null) {
                 return Type.SKIPPED;
@@ -185,7 +192,7 @@ public class ReplacementAspect {
                     TestSourcesModelUtil.INSTANCE.getTestSourcesModel().addReplacedStep(scenario.getUri(), pickleTestStep.getStepLine(), step);
                     lastEchoedStep = pickleTestStep.getStepText();
                     if (HookGSpec.loggerEnabled) {
-                        logger.info("  {}{}", keyword, newName);
+                        logger.info("   {}{}", keyword, newName);
                         if (!sbDataTable.toString().isEmpty()) {
                             logger.info("  {}", sbDataTable.toString());
                         }
@@ -196,10 +203,10 @@ public class ReplacementAspect {
                         StepDefinitionMatch definitionMatch = glue.stepDefinitionMatch(uri, step);
                         if (definitionMatch != null) {
                             if (!skipSteps) {
-                                definitionMatch.runStep(language, scenario);
+                                definitionMatch.runStep(scenario);
                                 return Type.PASSED;
                             } else {
-                                definitionMatch.dryRunStep(language, scenario);
+                                definitionMatch.dryRunStep(scenario);
                                 return Type.SKIPPED;
                             }
                         } else {

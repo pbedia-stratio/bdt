@@ -13,20 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.stratio.qa.specs;
 
-import com.stratio.qa.cucumber.testng.CucumberFeatureWrapper;
+package com.stratio.qa.cucumber.testng;
 
-import com.stratio.qa.cucumber.testng.PickleEventWrapper;
-import com.stratio.qa.utils.BaseGTest;
-import cucumber.api.CucumberOptions;
-import org.testng.annotations.Test;
+import gherkin.events.PickleEvent;
 
-@CucumberOptions(plugin = "json:target/cucumber.json", features = {"src/test/resources/features/kafkaSteps.feature"})
-public class KafkaStepsIT extends BaseGTest {
+class PickleEventWrapperImpl implements PickleEventWrapper {
 
-    @Test(dataProvider = "scenarios")
-    public void run(PickleEventWrapper pickleWrapper, CucumberFeatureWrapper featureWrapper) throws Throwable {
-        runScenario(pickleWrapper, featureWrapper);
+    private final PickleEvent pickleEvent;
+
+    PickleEventWrapperImpl(PickleEvent pickleEvent) {
+        this.pickleEvent = pickleEvent;
+    }
+
+    public PickleEvent getPickleEvent() {
+        return pickleEvent;
+    }
+
+    @Override
+    public String toString() {
+        return pickleEvent.pickle.getName();
     }
 }
