@@ -24,6 +24,7 @@ import cucumber.api.PickleStepTestStep;
 import cucumber.api.Result;
 import cucumber.api.TestCase;
 import cucumber.api.event.*;
+import cucumber.runtime.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,10 @@ public class CukesGHooks extends BaseGSpec implements ConcurrentEventListener {
     private String currentFeatureFile = null;
 
     private boolean isLastStepBackground = false;
+
+    private int exampleNumber = 1;
+
+    private String previousTestCaseName = "";
 
     public CukesGHooks() {
     }
@@ -93,7 +98,7 @@ public class CukesGHooks extends BaseGSpec implements ConcurrentEventListener {
         TestCase tc = event.testCase;
         logger.info("Feature/Scenario: {}/{} ", TestSourcesModelUtil.INSTANCE.getTestSourcesModel().getFeatureName(currentFeatureFile), tc.getName());
         ThreadProperty.set("feature", TestSourcesModelUtil.INSTANCE.getTestSourcesModel().getFeatureName(currentFeatureFile));
-        ThreadProperty.set("scenario", tc.getName());
+        ThreadProperty.set("scenario", calculateElementName(tc));
     }
 
     private void handleTestStepStarted(TestStepStarted event) {
@@ -142,6 +147,20 @@ public class CukesGHooks extends BaseGSpec implements ConcurrentEventListener {
     private void handleTestCaseFinished(TestCaseFinished event) {
         if (HookGSpec.loggerEnabled) {
             logger.info(""); //empty line to split scenarios
+        }
+    }
+
+    public String calculateElementName(cucumber.api.TestCase testCase) {
+        String testCaseName = testCase.getName();
+        if (testCaseName.equals(previousTestCaseName)) {
+            exampleNumber++;
+            ThreadProperty.set("dataSet", String.valueOf(exampleNumber));
+            return Utils.getUniqueTestNameForScenarioExample(testCaseName, exampleNumber);
+        } else {
+            ThreadProperty.set("dataSet", "");
+            previousTestCaseName = testCase.getName();
+            exampleNumber = 1;
+            return testCaseName;
         }
     }
 }
