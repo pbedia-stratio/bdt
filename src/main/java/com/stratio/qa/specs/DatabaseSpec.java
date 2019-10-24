@@ -33,18 +33,17 @@ import cucumber.api.java.en.When;
 import io.cucumber.datatable.DataTable;
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.testng.Assert;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 import static com.stratio.qa.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 /**
@@ -567,6 +566,7 @@ public class DatabaseSpec extends BaseGSpec {
      */
     @When("^I execute query '(.+?)'$")
     public void executeQuery(String query) throws Exception {
+        ThreadProperty.remove("querysize");
         Statement myStatement = null;
         int result = 0;
         Connection myConnection = this.commonspec.getConnection();
@@ -578,6 +578,23 @@ public class DatabaseSpec extends BaseGSpec {
         } catch (Exception e) {
             e.printStackTrace();
             assertThat(result).as(e.getClass().getName() + ": " + e.getMessage()).isNotEqualTo(0);
+        }
+    }
+
+    /*
+     * @param query
+     * executes query in database
+     */
+    @When("^I execute query '(.+?)' through JDBC connection$")
+    public void executeJdbcQuery(String query) throws Exception {
+        try {
+            ThreadProperty.remove("querysize");
+            Connection myConnection = this.commonspec.getConnection();
+            Statement myStatement = myConnection.createStatement();
+            myStatement.execute(query);
+            myStatement.close();
+        } catch (Exception e) {
+            fail("Error executing query -> " + e.getMessage());
         }
     }
 
@@ -605,12 +622,15 @@ public class DatabaseSpec extends BaseGSpec {
                 sqlTable.add(resultSetMetaData.getColumnName(i).toString());
             }
             //takes column names and column count
+            int resultSize = 0;
             while (rs.next()) {
+                resultSize++;
                 for (int i = 1; i <= count; i++) {
                     //aux list without column names
                     sqlTableAux.add(rs.getObject(i).toString());
                 }
             }
+            ThreadProperty.set("querysize", String.valueOf(resultSize));
             sqlTable.addAll(sqlTableAux);
 
             //sends raws to environment variable
@@ -1179,6 +1199,21 @@ public class DatabaseSpec extends BaseGSpec {
             myStatement.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Then(value = "The result has to have '(.*?)' rows$")
+    public void assertLengthResultXDDriver(String resultSize) {
+        Assert.assertEquals(ThreadProperty.get("querysize"), resultSize);
+        ThreadProperty.remove("querysize");
+    }
+
+    @Given(value = "^I connect with JDBC to Crossdata server( using TLS)? with parameters: host '(.*?)', port '(.*?)', user '(.*?)'(, password '(.*?)')?(, keystore '(.*?)')?(, keystore password '(.*?)')?(, truststore '(.*?)')?(, truststore password '(.*?)')?( and pagination)?$")
+    public void createXDDriver(String security, String host, String port, String user, String password, String keyStorePath, String keyStorePass, String trustStorePath, String trustStorePass, String pagination) {
+        try {
+            commonspec.connectToCrossdataDatabase(security != null, host, port, keyStorePath, keyStorePass, trustStorePath, trustStorePass, user, password, pagination != null);
+        } catch (Exception e) {
+            fail("Error when we trying to connect to Crossdata Database -> " + e.getMessage());
         }
     }
 }

@@ -85,6 +85,7 @@
         <selenium-java.version>3.9.1</selenium-java.version>
         <jsoup.version>1.7.3</jsoup.version>
         <json.version>20180130</json.version>
+        <crossdata-drivers.version>2.16.1-63d529c</crossdata-drivers.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -379,12 +380,16 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.10</artifactId>
+            <artifactId>kafka_2.11</artifactId>
             <version>0.10.0.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>scala-library</artifactId>
+                    <groupId>org.scala-lang</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -439,6 +444,11 @@
             <groupId>com.github.everit-org.json-schema</groupId>
             <artifactId>org.everit.json.schema</artifactId>
             <version>1.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.stratio.crossdata.driver</groupId>
+            <artifactId>crossdata-jdbc-common</artifactId>
+            <version>${crossdata-drivers.version}</version>
         </dependency>
     </dependencies>
     <repositories>
