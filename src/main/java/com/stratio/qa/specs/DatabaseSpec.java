@@ -567,6 +567,7 @@ public class DatabaseSpec extends BaseGSpec {
     @When("^I execute query '(.+?)'$")
     public void executeQuery(String query) throws Exception {
         ThreadProperty.remove("querysize");
+        getCommonSpec().setPreviousSqlResult(null);
         Statement myStatement = null;
         int result = 0;
         Connection myConnection = this.commonspec.getConnection();
@@ -589,6 +590,7 @@ public class DatabaseSpec extends BaseGSpec {
     public void executeJdbcQuery(String query) throws Exception {
         try {
             ThreadProperty.remove("querysize");
+            getCommonSpec().setPreviousSqlResult(null);
             Connection myConnection = this.commonspec.getConnection();
             Statement myStatement = myConnection.createStatement();
             myStatement.execute(query);
@@ -610,6 +612,7 @@ public class DatabaseSpec extends BaseGSpec {
         //postgres table
         List<String> sqlTable = new ArrayList<String>();
         List<String> sqlTableAux = new ArrayList<String>();
+        Map<String, List<String>> sqlResultMap = new HashMap<>();
         Connection myConnection = this.commonspec.getConnection();
         java.sql.ResultSet rs = null;
         try {
@@ -620,6 +623,7 @@ public class DatabaseSpec extends BaseGSpec {
             int count = resultSetMetaData.getColumnCount();
             for (int i = 1; i <= count; i++) {
                 sqlTable.add(resultSetMetaData.getColumnName(i).toString());
+                sqlResultMap.put(resultSetMetaData.getColumnName(i), new ArrayList<>());
             }
             //takes column names and column count
             int resultSize = 0;
@@ -627,7 +631,13 @@ public class DatabaseSpec extends BaseGSpec {
                 resultSize++;
                 for (int i = 1; i <= count; i++) {
                     //aux list without column names
-                    sqlTableAux.add(rs.getObject(i).toString());
+                    sqlTableAux.add(rs.getObject(i) != null ? rs.getObject(i).toString() : "<EMPTY>");
+                    List<String> previousList = sqlResultMap.get(resultSetMetaData.getColumnName(i));
+                    if (previousList == null) {
+                        previousList = new ArrayList<>();
+                    }
+                    previousList.add(rs.getObject(i) != null ? rs.getObject(i).toString() : "<EMPTY>");
+                    sqlResultMap.put(resultSetMetaData.getColumnName(i), previousList);
                 }
             }
             ThreadProperty.set("querysize", String.valueOf(resultSize));
@@ -638,6 +648,7 @@ public class DatabaseSpec extends BaseGSpec {
                 ThreadProperty.set("queryresponse" + i, sqlTable.get(i));
             }
             ThreadProperty.remove("queryresponse" + sqlTable.size());
+            getCommonSpec().setPreviousSqlResult(sqlResultMap);
             rs.close();
             myStatement.close();
         } catch (Exception e) {
@@ -1214,6 +1225,45 @@ public class DatabaseSpec extends BaseGSpec {
             commonspec.connectToCrossdataDatabase(security != null, host, port, keyStorePath, keyStorePass, trustStorePath, trustStorePass, user, password, pagination != null);
         } catch (Exception e) {
             fail("Error when we trying to connect to Crossdata Database -> " + e.getMessage());
+        }
+    }
+
+    /*
+     * Test if dataTable is contained in query result
+     *
+     * @param tableName
+     */
+    @Then("^I check that result contains:$")
+    public void compareTableContains(DataTable dataTable) {
+        if (getCommonSpec().getPreviousSqlResult() == null) {
+            fail("Result not stored. Query must be executed with step 'I query the database with ...'");
+        }
+        List<List<String>> datatableCells = dataTable.cells();
+        Map<String, List<String>> previousSqlResult = getCommonSpec().getPreviousSqlResult();
+        List<String> headersList = datatableCells.get(0);
+        // Check that columns exists
+        for (int col = 0; col < headersList.size(); col++) {
+            if (previousSqlResult.get(headersList.get(col)) == null) {
+                fail("Column '" + headersList.get(col) + "' doesn't appear in SQL result");
+            }
+        }
+        for (int row = 1; row < datatableCells.size(); row++) {
+            int col = 0;
+            List<String> columnResult = previousSqlResult.get(headersList.get(col));
+            Assertions.assertThat(columnResult).as("Value: " + datatableCells.get(row).get(col) + " is not returned in column: " + headersList.get(col)).contains(datatableCells.get(row).get(col));
+            int auxRow = 0;
+            while (col < datatableCells.get(row).size() && auxRow < columnResult.size()) {
+                columnResult = previousSqlResult.get(headersList.get(col));
+                if (columnResult.get(auxRow).equals(datatableCells.get(row).get(col))) {
+                    col++;
+                } else {
+                    auxRow++;
+                    col = 0;
+                }
+            }
+            if (auxRow >= columnResult.size()) {
+                fail("Error in table comparison: comparing table. Row " + row + " not found in query response.");
+            }
         }
     }
 }

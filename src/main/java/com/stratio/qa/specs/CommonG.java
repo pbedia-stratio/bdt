@@ -140,6 +140,8 @@ public class CommonG {
 
     private Connection myConnection = null;
 
+    private Map<String, List<String>> previousSqlResult = null;
+
     /**
      * Checks if a given string matches a regular expression or contains a string
      *
@@ -2459,5 +2461,13 @@ public class CommonG {
             // re-throw the exception
             throw se;
         }
+    }
+
+    public Map<String, List<String>> getPreviousSqlResult() {
+        return previousSqlResult;
+    }
+
+    public void setPreviousSqlResult(Map<String, List<String>> previousSqlResult) {
+        this.previousSqlResult = previousSqlResult;
     }
 }
