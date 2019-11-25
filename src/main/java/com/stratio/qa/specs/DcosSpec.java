@@ -912,7 +912,7 @@ public class DcosSpec extends BaseGSpec {
      * @param envVar environment variable where to store retrieved information
      * @throws Exception
      */
-    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KRB_HOST|LDAP_HOST|VAULT_HOST|ADMIN_USER|TENANT|ACCESS_POINT|LDAP_URL|LDAP_PORT|LDAP_USER_DN|LDAP_GROUP_DN|LDAP_BASE|LDAP_ADMIN_GROUP)' from descriptor and save it in environment variable '(.+?)'$")
+    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KRB_HOST|LDAP_HOST|VAULT_HOST|IP|ADMIN_USER|TENANT|ACCESS_POINT|LDAP_URL|LDAP_PORT|LDAP_USER_DN|LDAP_GROUP_DN|LDAP_BASE|LDAP_ADMIN_GROUP)' from descriptor and save it in environment variable '(.+?)'$")
     public void obtainInfoFromDescriptor(String info, String envVar) throws Exception {
         String jqExpression = "";
 
@@ -965,11 +965,14 @@ public class DcosSpec extends BaseGSpec {
             case "VAULT_HOST":
                 jqExpression = "jq -crM '.nodes[] | select((.role ?== \"gosec\") and .id ?== \"gosec1\") | .networking[0].ip'";
                 break;
+            case "IP":
+                jqExpression = "jq -crM '.nodes[] | select(.role ?== \"master\") | .networking[0].ip' | paste -sd \",\" - | cut -d, -f1";
+                break;
             case "ADMIN_USER":
                 jqExpression = "jq -crM .security.ldap.adminUserUuid";
                 break;
             case "TENANT":
-                jqExpression = "jq -crM .security.tenantSSODefault";
+                jqExpression = "jq -crM .security.tenantSSODefault | sed 's/null/NONE/g'";
                 break;
             case "ACCESS_POINT":
                 jqExpression = "jq -crM .proxyAccessPointURL | sed 's/https:\\/\\///g'";
@@ -1002,7 +1005,7 @@ public class DcosSpec extends BaseGSpec {
 
     /**
      * Obtains basic information for tests from descriptor file:
-     * EOS_CLUSTER_ID, EOS_DNS_SEARCH, EOS_INTERNAL_DOMAIN, DCOS_USER, DCOS_TENANT, VAULT_TOKEN
+     * EOS_CLUSTER_ID, EOS_DNS_SEARCH, EOS_INTERNAL_DOMAIN, DCOS_IP, DCOS_USER, DCOS_TENANT, VAULT_TOKEN
      * LDAP_URL, LDAP_PORT, LDAP_USER_DN, LDAP_GROUP_DN, LDAP_BASE, LDAP_ADMIN_GROUP
      *
      * @throws Exception
@@ -1012,8 +1015,9 @@ public class DcosSpec extends BaseGSpec {
         String varClusterID = "EOS_CLUSTER_ID";
         String varClusterDomain = "EOS_DNS_SEARCH";
         String varInternalDomain = "EOS_INTERNAL_DOMAIN";
+        String varIp = "DCOS_IP";
         String varAdminUser = "DCOS_USER";
-//        String varTenant = "DCOS_TENANT";
+        String varTenant = "DCOS_TENANT";
         String varVaultHost = "EOS_VAULT_HOST";
         String varVaultToken = "VAULT_TOKEN";
         String varPublicNode = "PUBLIC_NODE";
@@ -1023,8 +1027,9 @@ public class DcosSpec extends BaseGSpec {
         obtainInfoFromDescriptor("ID", varClusterID);
         obtainInfoFromDescriptor("DNS_SEARCH", varClusterDomain);
         obtainInfoFromDescriptor("INTERNAL_DOMAIN", varInternalDomain);
+        obtainInfoFromDescriptor("IP", varIp);
         obtainInfoFromDescriptor("ADMIN_USER", varAdminUser);
-//        obtainInfoFromDescriptor("TENANT", varTenant);
+        obtainInfoFromDescriptor("TENANT", varTenant);
         obtainInfoFromDescriptor("VAULT_HOST", varVaultHost);
         obtainInfoFromFile(vaultTokenJQ, this.vaultResponsePath, varVaultToken);
         commonspec.getRemoteSSHConnection().runCommand("set -o pipefail && cat " + this.descriptorPath + " | " + "jq -crM '.nodes[] | select((.role ?== \"agent\") and .public ?== true)'" + " | " + "wc -l");
