@@ -52,9 +52,12 @@ public class LdapSpec extends BaseGSpec {
     /**
      * Connect to LDAP.
      */
-    @Given("^I connect to LDAP$")
-    public void connectLDAP() {
-        commonspec.getLdapUtils().connect();
+    @Given("^I connect to LDAP( using the CA trust '(.+?)')?$")
+    public void connectLDAP(String ldapCaTrust) {
+        if (ldapCaTrust == null || ldapCaTrust.isEmpty()) {
+            ldapCaTrust = "target/test-classes/ca_test.crt";
+        }
+        commonspec.getLdapUtils().connect(ldapCaTrust);
     }
 
     /**

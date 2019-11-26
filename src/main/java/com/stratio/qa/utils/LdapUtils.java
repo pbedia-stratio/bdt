@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
 import org.ldaptive.*;
 import org.ldaptive.pool.BlockingConnectionPool;
 import org.ldaptive.pool.PooledConnectionFactory;
+import org.ldaptive.ssl.SslConfig;
+import org.ldaptive.ssl.X509CredentialConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,10 +60,18 @@ public class LdapUtils {
         this.url = (this.ssl == true ? "ldaps://" : "ldap://") + ldapUrl + ":" + ldapPort;
     }
 
-    public void connect() {
+    public void connect(String ldapCaTrust) {
         this.config = new ConnectionConfig();
         this.config.setLdapUrl(this.url);
         this.config.setUseSSL(this.ssl);
+
+        // Use CA provided to trust LDAP certificate
+        SslConfig sslCfg = new SslConfig();
+        X509CredentialConfig crdCfg = new X509CredentialConfig();
+        crdCfg.setTrustCertificates("file:" + ldapCaTrust);
+        sslCfg.setCredentialConfig(crdCfg);
+        this.config.setSslConfig(sslCfg);
+
         this.config.setConnectionInitializer(new BindConnectionInitializer(user, new Credential(password)));
         this.pool = new BlockingConnectionPool(new DefaultConnectionFactory(this.config));
         if (!this.pool.isInitialized()) {

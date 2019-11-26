@@ -1012,6 +1012,7 @@ public class DcosSpec extends BaseGSpec {
      */
     @Given("^I obtain basic information from bootstrap$")
     public void obtainBasicInfoFromDescriptor() throws Exception {
+        // General values
         String varClusterID = "EOS_CLUSTER_ID";
         String varClusterDomain = "EOS_DNS_SEARCH";
         String varInternalDomain = "EOS_INTERNAL_DOMAIN";
@@ -1037,16 +1038,12 @@ public class DcosSpec extends BaseGSpec {
             obtainInfoFromDescriptor("PUBLIC_NODE", varPublicNode);
         }
         obtainInfoFromDescriptor("ACCESS_POINT", varAccessPoint);
-    }
 
-    /**
-     * Obtains basic LDAP information for tests from descriptor file:
-     * LDAP_URL, LDAP_PORT, LDAP_USER_DN, LDAP_GROUP_DN, LDAP_BASE, LDAP_ADMIN_GROUP
-     *
-     * @throws Exception
-     */
-    @Given("^I obtain basic LDAP information from bootstrap$")
-    public void obtainBasicLDAPInfoFromDescriptor() throws Exception {
+        // Get CA to trust certificates
+        String caTrust = (System.getProperty("EOS_CA_TRUST") != null) ? System.getProperty("EOS_CA_TRUST") : "/stratio_volume/cas_trusted/ca.crt";
+        commonspec.getRemoteSSHConnection().copyFrom(caTrust, "target/test-classes/ca_test.crt");
+
+        // LDAP values
         String varLDAPurl = "LDAP_URL";
         String varLDAPport = "LDAP_PORT";
         String varLDAPuserDn = "LDAP_USER_DN";
