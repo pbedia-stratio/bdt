@@ -322,18 +322,14 @@ public class CommandExecutionSpec extends BaseGSpec {
         writer.write(finalCmd.toString());
         writer.close();
 
-        commonspec.getLogger().debug("Uploading script file:" + finalFile);
-        copyToRemoteFile(finalFile, baseFolder);
-
         //Now launch it
         commonspec.getLogger().debug("Giving permissions:" + finalFile);
-        commonspec.getRemoteSSHConnection().runCommand("chmod +x " + finalFile);
+        commonspec.runLocalCommand("chmod +x " + finalFile);
 
         commonspec.getLogger().debug("Executing script file:" + finalFile);
-        commonspec.runCommandAndGetResult(finalFile);
+        commonspec.runLocalCommand(finalFile);
 
         //Delete file
-        commonspec.getRemoteSSHConnection().runCommand("rm -Rf " + finalFile);
         commonspec.runLocalCommand("rm -Rf " + finalFile);
     }
 
