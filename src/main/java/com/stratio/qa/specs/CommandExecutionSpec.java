@@ -278,9 +278,9 @@ public class CommandExecutionSpec extends BaseGSpec {
      * @param pem
      *
      */
-    @Then(value = "^I execute the command '(.*?)' in '(.*?)' nodes of my cluster with user '(.+?)' and pem '(.+?)'$")
-    public void runInAllNodes(String command, String nodes, String user, String pem) throws Exception {
-        executeScriptInAllnodes(command, null, nodes, user, pem);
+    @Then(value = "^I execute( remotely)? the command '(.*?)' in '(.*?)' nodes of my cluster with user '(.+?)' and pem '(.+?)'$")
+    public void runInAllNodes(String remote, String command, String nodes, String user, String pem) throws Exception {
+        executeScriptInAllnodes(remote, command, null, nodes, user, pem);
     }
 
     /**
@@ -292,15 +292,17 @@ public class CommandExecutionSpec extends BaseGSpec {
      * @param pem
      *
      */
-    @Then(value = "^I copy '(.*?)' in '(.*?)' path in '(.*?)' nodes of my cluster with user '(.+?)' and pem '(.+?)'$")
-    public void copyFileInAllnodes(String localPath, String remotePath, String nodes, String user, String pem) throws Exception {
-        executeScriptInAllnodes(localPath, remotePath, nodes, user, pem);
+    @Then(value = "^I copy( remotely file)? '(.*?)' in '(.*?)' path in '(.*?)' nodes of my cluster with user '(.+?)' and pem '(.+?)'$")
+    public void copyFileInAllnodes(String remote, String localPath, String remotePath, String nodes, String user, String pem) throws Exception {
+        executeScriptInAllnodes(remote, localPath, remotePath, nodes, user, pem);
     }
 
-    private void executeScriptInAllnodes(String commandOrLocalPath, String remotePath, String nodes, String user, String pem) throws Exception {
-        String baseFolder = "/tmp";
+    private void executeScriptInAllnodes(String remotely, String commandOrLocalPath, String remotePath, String nodes, String user, String pem) throws Exception {
+        String baseFolder = remotely != null ? "/tmp" : "target/test-classes";
         String tmpFileBase = baseFolder + "/parallel-script-";
-        String finalFile = tmpFileBase + new Date().getTime() + ".sh";
+        long timestamp = new Date().getTime();
+        String finalFile = tmpFileBase + timestamp + ".sh";
+        String pemFile = remotely != null ? baseFolder + "/key" + timestamp + ".pem" : pem;
         String[] aNodes = obtainNodes(nodes);
         StringBuilder finalCmd = new StringBuilder("#!/bin/bash\n");
 
@@ -309,9 +311,9 @@ public class CommandExecutionSpec extends BaseGSpec {
         //Prepare script command in parallel
         for (String node : aNodes) {
             if (remotePath != null) {
-                finalCmd.append(constructSshParallelCopyFileCmd(commandOrLocalPath, remotePath, user, pem, node));
+                finalCmd.append(constructSshParallelCopyFileCmd(commandOrLocalPath, remotePath, user, pemFile, node));
             } else {
-                finalCmd.append(constructSshParallelCmd(commandOrLocalPath, user, pem, node));
+                finalCmd.append(constructSshParallelCmd(commandOrLocalPath, user, pemFile, node));
             }
         }
 
@@ -322,15 +324,34 @@ public class CommandExecutionSpec extends BaseGSpec {
         writer.write(finalCmd.toString());
         writer.close();
 
+        if (remotely != null) {
+            commonspec.getLogger().debug("Uploading script file:" + finalFile);
+            copyToRemoteFile(finalFile, baseFolder);
+            copyToRemoteFile(pem, pemFile);
+        }
+
         //Now launch it
         commonspec.getLogger().debug("Giving permissions:" + finalFile);
-        commonspec.runLocalCommand("chmod +x " + finalFile);
+        if (remotely != null) {
+            commonspec.getRemoteSSHConnection().runCommand("chmod +x " + finalFile);
+            commonspec.getRemoteSSHConnection().runCommand("chmod 400 " + pemFile);
+        } else {
+            commonspec.runLocalCommand("chmod +x " + finalFile);
+        }
 
         commonspec.getLogger().debug("Executing script file:" + finalFile);
-        commonspec.runLocalCommand(finalFile);
+        if (remotely != null) {
+            commonspec.runCommandAndGetResult(finalFile);
+        } else {
+            commonspec.runLocalCommand(finalFile);
+        }
 
         //Delete file
         commonspec.runLocalCommand("rm -Rf " + finalFile);
+        if (remotely != null) {
+            commonspec.getRemoteSSHConnection().runCommand("rm -Rf " + finalFile);
+            commonspec.getRemoteSSHConnection().runCommand("rm -Rf " + pemFile);
+        }
     }
 
     private String[] obtainNodes(String nodes) throws Exception {
