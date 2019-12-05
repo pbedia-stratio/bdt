@@ -1564,13 +1564,16 @@ public class CommonG {
                 //Now, we are going to check the values
                 Set<String> keys = expectedRow.keySet();
                 for (String key : keys) {
-                    if (expectedRow.get(key).contains("regex") || expectedRow.get(key).contains("not_check")) {
+                    if (expectedRow.get(key).contains("regex") || expectedRow.get(key).contains("not_check") || expectedRow.get(key).contains("not_empty")) {
                         if (expectedRow.get(key).contains("regex-timestamp")) {
                             String[] format = expectedRow.get(key).split("_");
                             assertThat(true).overridingErrorMessage("The values of key %s and %s line are not a valid timestamp", expectedRow.get(key), i).isEqualTo(isThisDateValid(obtainedRow.get(key), format[1]));
                         }
                         if (expectedRow.get(key).contains("regex-uuid")) {
                             assertThat(true).overridingErrorMessage("The values of key %s and %s line are not an UIDD", expectedRow.get(key), i).isEqualTo(isUUID(obtainedRow.get(key)));
+                        }
+                        if (expectedRow.get(key).contains("not_empty")) {
+                            assertThat(false).overridingErrorMessage("The values of key %s and %s line are empty", expectedRow.get(key), i).isEqualTo(obtainedRow.get(key).isEmpty());
                         }
                     } else {
                         assertThat(expectedRow.get(key)).overridingErrorMessage("The values of key %s and %s line are not equals", expectedRow.get(key), i).isEqualTo(obtainedRow.get(key));

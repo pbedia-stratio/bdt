@@ -27,3 +27,15 @@ Feature: Test for CSV matcher
       | 3  | Alvaro  | Lopez     |
       | 4  | Antonio | Alfonso   |
       | 5  | Diego   | Martinez  |
+
+  Scenario: DataTable are equals CSV file with not_empty
+    When I read info from csv file 'src/test/resources/schemas/csv_2.csv' with separator ','
+    Then There are results found with:
+      | id | uuid       | date      |
+      | 0  | regex-uuid | not_empty |
+
+  Scenario: DataTable are equals CSV file with not_check
+    When I read info from csv file 'src/test/resources/schemas/csv_2.csv' with separator ','
+    Then There are results found with:
+      | id | uuid       | date      |
+      | 0  | regex-uuid | not_check |

@@ -4,7 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.13.0 (upcoming)
 
-* Pending changelog
+* [LDG-1225]Added not-empty check cell in csv matcher
 
 ## 0.12.0 (October 03, 2019)
 
