@@ -963,7 +963,7 @@ public class DcosSpec extends BaseGSpec {
                 jqExpression = "jq -crM .security.ldap.url";
                 break;
             case "VAULT_HOST":
-                jqExpression = "jq -crM '.nodes[] | select((.role ?== \"gosec\") and .id ?== \"gosec1\") | .networking[0].ip'";
+                jqExpression = "jq -crM '.nodes[] | select(.role ?== \"gosec\") | .networking[0].ip' | paste -sd \",\" - | cut -d, -f1";
                 break;
             case "IP":
                 jqExpression = "jq -crM '.nodes[] | select(.role ?== \"master\") | .networking[0].ip' | paste -sd \",\" - | cut -d, -f1";
