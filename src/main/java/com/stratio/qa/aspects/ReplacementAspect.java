@@ -379,9 +379,14 @@ public class ReplacementAspect {
             String defaultValue = "";
             String prop;
             String placeholderAux = "";
+            Boolean emptyDefault = false;
 
             if (placeholder.contains(":-")) {
                 defaultValue = placeholder.substring(placeholder.indexOf(":-") + 2, placeholder.length() - 1);
+                if ("''".equals(defaultValue)) {
+                    emptyDefault = true;
+                    defaultValue = "";
+                }
                 placeholderAux = placeholder.substring(0, placeholder.indexOf(":-")) + "}";
             }
 
@@ -394,7 +399,7 @@ public class ReplacementAspect {
                     modifier = placeholder.substring(placeholder.indexOf(".") + 1, placeholder.length() - 1);
                 }
             } else {
-                if (defaultValue.isEmpty()) {
+                if (defaultValue.isEmpty() && !emptyDefault) {
                     if (placeholder.contains(".")) {
                         modifier = placeholder.substring(placeholder.indexOf(".") + 1, placeholder.length() - 1);
                         sysProp = placeholder.substring(2, placeholder.indexOf("."));
@@ -407,7 +412,12 @@ public class ReplacementAspect {
             }
 
             if (defaultValue.isEmpty()) {
-                prop = System.getProperty(sysProp);
+                if (emptyDefault) {
+                    prop = System.getProperty(sysProp, defaultValue);
+                } else {
+                    prop = System.getProperty(sysProp);
+                }
+
             } else {
                 prop = System.getProperty(sysProp, defaultValue);
             }
