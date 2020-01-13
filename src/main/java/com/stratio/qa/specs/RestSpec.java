@@ -130,7 +130,7 @@ public class RestSpec extends BaseGSpec {
             searchUntilContains = Boolean.FALSE;
         }
         Boolean found = !searchUntilContains;
-        AssertionError ex = null;
+        Exception ex = null;
 
         Future<Response> response;
 
@@ -140,12 +140,13 @@ public class RestSpec extends BaseGSpec {
             if (found && searchUntilContains) {
                 break;
             }
-            commonspec.getLogger().debug("Generating request {} to {} with data {} as {}", requestType, endPoint, modifiedData, type);
-            response = commonspec.generateRequest(requestType, false, null, null, endPoint, modifiedData, type);
-            commonspec.getLogger().debug("Saving response");
-            commonspec.setResponse(requestType, response.get());
-            commonspec.getLogger().debug("Checking response value");
             try {
+                commonspec.getLogger().debug("Generating request {} to {} with data {} as {}", requestType, endPoint, modifiedData, type);
+                response = commonspec.generateRequest(requestType, false, null, null, endPoint, modifiedData, type);
+                commonspec.getLogger().debug("Saving response");
+                commonspec.setResponse(requestType, response.get());
+                commonspec.getLogger().debug("Checking response value");
+
                 if (searchUntilContains) {
                     assertThat(commonspec.getResponse().getResponse()).containsPattern(pattern);
                     found = true;
@@ -155,7 +156,7 @@ public class RestSpec extends BaseGSpec {
                     found = false;
                     timeout = i;
                 }
-            } catch (AssertionError e) {
+            } catch (Exception e) {
                 if (!found) {
                     commonspec.getLogger().info("Response value not found after " + i + " seconds");
                 } else {
@@ -489,7 +490,7 @@ public class RestSpec extends BaseGSpec {
      */
     @When("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, I send a '(.+?)' request to '(.+?)' so that the response( does not)? contains '(.+?)'$")
     public void sendRequestTimeout(Integer timeout, Integer wait, String requestType, String endPoint, String contains, String responseVal) throws Exception {
-        AssertionError ex = null;
+        Exception ex = null;
         String type = "";
         Future<Response> response;
 
@@ -507,10 +508,11 @@ public class RestSpec extends BaseGSpec {
                 if (found && searchUntilContains) {
                     break;
                 }
-                response = commonspec.generateRequest(requestType, false, null, null, endPoint, "", type, "");
-                commonspec.setResponse(requestType, response.get());
-                commonspec.getLogger().debug("Checking response value");
                 try {
+                    response = commonspec.generateRequest(requestType, false, null, null, endPoint, "", type, "");
+                    commonspec.setResponse(requestType, response.get());
+                    commonspec.getLogger().debug("Checking response value");
+
                     if (searchUntilContains) {
                         assertThat(commonspec.getResponse().getResponse()).containsPattern(pattern);
                         found = true;
@@ -520,7 +522,7 @@ public class RestSpec extends BaseGSpec {
                         found = false;
                         timeout = i;
                     }
-                } catch (AssertionError e) {
+                } catch (Exception e) {
                     if (!found) {
                         commonspec.getLogger().info("Response value not found after " + i + " seconds");
                     } else {
@@ -544,13 +546,14 @@ public class RestSpec extends BaseGSpec {
         } else {
 
             for (int i = 0; (i <= timeout); i += wait) {
-                response = commonspec.generateRequest(requestType, false, null, null, endPoint, "", type, "");
-                commonspec.setResponse(requestType, response.get());
-                commonspec.getLogger().debug("Checking response value");
                 try {
+                    response = commonspec.generateRequest(requestType, false, null, null, endPoint, "", type, "");
+                    commonspec.setResponse(requestType, response.get());
+                    commonspec.getLogger().debug("Checking response value");
+
                     assertThat(commonspec.getResponse().getResponse());
                     timeout = i;
-                } catch (AssertionError e) {
+                } catch (Exception e) {
                     Thread.sleep(wait * 1000);
                     ex = e;
                 }
