@@ -599,7 +599,7 @@ public class DcosSpec extends BaseGSpec {
             miscspec.saveElementEnvironment(null, "$.app", "marathon_answer");
             Assertions.assertThat(ThreadProperty.get("marathon_answer")).overridingErrorMessage("Error while parsing constraints. The instance " + instance + " of the service " + service + " isn't deployed").isNotEmpty();
         } else {
-            restspec.sendRequestTimeout(100, 5, "GET", "/exhibitor/exhibitor/v1/explorer/node-data?key=%2Fdatastore%2F" + service + "%2F" + instance + "%2Fplan-v2-json&_=", null, "str");
+            restspec.sendRequestTimeout(100, 5, "GET", "/exhibitor/exhibitor/v1/explorer/node-data?key=/datastore/" + service + "/" + instance + "/plan-v2-json&_=", null, "str");
             miscspec.saveElementEnvironment(null, "$.str", "exhibitor_answer");
             Assertions.assertThat(ThreadProperty.get("exhibitor_answer")).overridingErrorMessage("Error while parsing constraints. The instance " + instance + " of the service " + service + " isn't deployed").isNotEmpty();
         }
