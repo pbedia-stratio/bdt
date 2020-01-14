@@ -130,7 +130,7 @@ public class RestSpec extends BaseGSpec {
             searchUntilContains = Boolean.FALSE;
         }
         Boolean found = !searchUntilContains;
-        Exception ex = null;
+        AssertionError ex = null;
 
         Future<Response> response;
 
@@ -156,14 +156,16 @@ public class RestSpec extends BaseGSpec {
                     found = false;
                     timeout = i;
                 }
-            } catch (Exception e) {
+            } catch (AssertionError | Exception e) {
                 if (!found) {
                     commonspec.getLogger().info("Response value not found after " + i + " seconds");
                 } else {
                     commonspec.getLogger().info("Response value found after " + i + " seconds");
                 }
                 Thread.sleep(wait * 1000);
-                ex = e;
+                if (e instanceof AssertionError) {
+                    ex = (AssertionError) e;
+                }
             }
             if (!found && !searchUntilContains) {
                 break;
@@ -490,7 +492,7 @@ public class RestSpec extends BaseGSpec {
      */
     @When("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, I send a '(.+?)' request to '(.+?)' so that the response( does not)? contains '(.+?)'$")
     public void sendRequestTimeout(Integer timeout, Integer wait, String requestType, String endPoint, String contains, String responseVal) throws Exception {
-        Exception ex = null;
+        AssertionError ex = null;
         String type = "";
         Future<Response> response;
 
@@ -522,14 +524,16 @@ public class RestSpec extends BaseGSpec {
                         found = false;
                         timeout = i;
                     }
-                } catch (Exception e) {
+                } catch (AssertionError | Exception e) {
                     if (!found) {
                         commonspec.getLogger().info("Response value not found after " + i + " seconds");
                     } else {
                         commonspec.getLogger().info("Response value found after " + i + " seconds");
                     }
                     Thread.sleep(wait * 1000);
-                    ex = e;
+                    if (e instanceof AssertionError) {
+                        ex = (AssertionError) e;
+                    }
                 }
                 if (!found && !searchUntilContains) {
                     break;
@@ -553,9 +557,11 @@ public class RestSpec extends BaseGSpec {
 
                     assertThat(commonspec.getResponse().getResponse());
                     timeout = i;
-                } catch (Exception e) {
+                } catch (AssertionError | Exception e) {
                     Thread.sleep(wait * 1000);
-                    ex = e;
+                    if (e instanceof AssertionError) {
+                        ex = (AssertionError) e;
+                    }
                 }
             }
         }
