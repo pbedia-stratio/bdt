@@ -78,6 +78,11 @@ public class CommandExecutionSpec extends BaseGSpec {
         }
     }
 
+    @Deprecated
+    public void openSSHConnection(String remoteHost, String remotePort, String user, String password, String pemFile) throws Exception {
+        openSSHConnection(remoteHost, remotePort, user, password, pemFile, null);
+    }
+
     /*
      * Copies file/s from remote system into local system
      *
@@ -142,6 +147,11 @@ public class CommandExecutionSpec extends BaseGSpec {
         }
 
         commonspec.executeCommand(command, sshConnectionId, exitStatus, envVar);
+    }
+
+    @Deprecated
+    public void executeCommand(String command, String sExitStatus, String envVar) throws Exception {
+        executeCommand(command, null, sExitStatus, envVar);
     }
 
     /**
