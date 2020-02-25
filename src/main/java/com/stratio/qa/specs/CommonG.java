@@ -2518,4 +2518,14 @@ public class CommonG {
     public void setPreviousSqlResult(Map<String, List<String>> previousSqlResult) {
         this.previousSqlResult = previousSqlResult;
     }
+
+    /**
+     * Get the Vault utils.
+     *
+     * @return VaultUtils
+     */
+    public VaultUtils getVaultUtils() {
+        return VaultUtil.INSTANCE.getVaultUtils();
+    }
+
 }
