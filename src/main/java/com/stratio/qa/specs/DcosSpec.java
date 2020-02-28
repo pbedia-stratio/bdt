@@ -1132,4 +1132,75 @@ public class DcosSpec extends BaseGSpec {
 
     }
 
+
+    @Given("^I get services info from marathon")
+    public void getServicesInfoFromMarathon() throws Exception {
+        if (ThreadProperty.get("marathonVariables") == null) {
+            getServicesInfoFromMarathonImpl();
+        }
+    }
+
+    /**
+     * Using marathon API, get all services deployed in cluster and set CCT variables
+     *
+     * @throws Exception
+     */
+    private void getServicesInfoFromMarathonImpl() throws Exception {
+        String marathonEndPoint = "/service/marathon/v2/apps";
+        // Set sso token
+        setGoSecSSOCookie(null, null, ThreadProperty.get("EOS_ACCESS_POINT"), ThreadProperty.get("DCOS_USER"), System.getProperty("DCOS_PASSWORD"), ThreadProperty.get("DCOS_TENANT"), null);
+        // Securely send requests
+        commonspec.setRestProtocol("https://");
+        commonspec.setRestHost(ThreadProperty.get("EOS_ACCESS_POINT"));
+        commonspec.setRestPort(":443");
+        // Invoke marathon API
+        Future<Response> response = commonspec.generateRequest("GET", false, null, null, marathonEndPoint, "", null);
+        commonspec.setResponse(marathonEndPoint, response.get());
+        if (commonspec.getResponse().getStatusCode() != 200) {
+            throw new Exception("Error in marathon request. Response code: " + commonspec.getResponse().getStatusCode());
+        }
+        // Save versions
+        List<String> appsToSaveVersion = Arrays.asList("gosec-management", "dyplon-http", "gosec-identities-daas", "gosec-services-daas", "command-center", "cct-deploy-api", "cct-universe", "cct-marathon-services", "cct-configuration-api");
+        JSONObject marathonAnswer = new JSONObject(commonspec.getResponse().getResponse());
+        JSONArray marathonApps = (JSONArray) marathonAnswer.get("apps");
+        for (Object oApp : marathonApps) {
+            if (oApp instanceof JSONObject) {
+                JSONObject jsonApp = (JSONObject) oApp;
+                String dockerImage = jsonApp.getJSONObject("container").getJSONObject("docker").getString("image");
+                String dockerImageName = dockerImage.substring(dockerImage.lastIndexOf("/") + 1, dockerImage.lastIndexOf(":"));
+                String dockerImageVersion = dockerImage.substring(dockerImage.lastIndexOf(":") + 1);
+                if (appsToSaveVersion.contains(dockerImageName)) {
+                    ThreadProperty.set(dockerImageName + "_version", dockerImageVersion);
+                    commonspec.getLogger().debug(dockerImageName + " - " + dockerImageVersion);
+                }
+            }
+        }
+        // Save variables
+        if (ThreadProperty.get("cct-marathon-services_version") != null) {
+            ThreadProperty.set("cct-marathon-services_id", "cct-marathon-services");
+        }
+        if (ThreadProperty.get("cct-deploy-api_version") != null && ThreadProperty.get("cct-deploy-api_version").startsWith("1.")) {
+            ThreadProperty.set("deploy_api_id", "cct-deploy-api");
+        } else {
+            ThreadProperty.set("deploy_api_id", "deploy-api");
+        }
+        if (ThreadProperty.get("command-center_version") != null && ThreadProperty.get("command-center_version").startsWith("1.")) {
+            ThreadProperty.set("cct_ui_id", "cct-ui");
+        } else {
+            ThreadProperty.set("cct_ui_id", "cctui");
+        }
+        if (ThreadProperty.get("cct-configuration-api_version") != null) {
+            try {
+                String[] version = ThreadProperty.get("cct-configuration-api_version").split("\\.");
+                if (Integer.parseInt(version[0]) < 1 || (Integer.parseInt(version[0]) == 1 && Integer.parseInt(version[0]) < 4)) {
+                    ThreadProperty.set("configuration_api_id", "configuration-api");
+                } else {
+                    ThreadProperty.set("configuration_api_id", "cct-configuration-api");
+                }
+            } catch (NumberFormatException e) {
+                ThreadProperty.set("configuration_api_id", "cct-configuration-api");
+            }
+        }
+        ThreadProperty.set("marathonVariables", "true");
+    }
 }

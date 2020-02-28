@@ -283,6 +283,7 @@ public class HookGSpec extends BaseGSpec {
     public void dcosSetup() throws Exception {
         DcosSpec dcosSpec = new DcosSpec(commonspec);
         dcosSpec.obtainBasicInfoFromDescriptor(null);
+        dcosSpec.getServicesInfoFromMarathon();
     }
 
     @After(order = ORDER_20, value = "@dcos")
