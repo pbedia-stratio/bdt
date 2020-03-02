@@ -2486,16 +2486,16 @@ public class CommonG {
         Assertions.assertThat(remoteSSHConnection.getExitStatus()).isEqualTo(exitStatus);
     }
 
-    public void connectToCrossdataDatabase(boolean security, String host, String port, String keystore_path, String keystore_pwd, String truststore_path, String trustore_pwd, String user, String password, boolean pagination) throws Exception {
+    public void connectToCrossdataDatabase(boolean security, String host, String port, String keystore_path, String keystore_pwd, String truststore_path, String truststore_pwd, String user, String password, boolean pagination) throws Exception {
         String jdbcConnection = "jdbc:crossdata://Server=" + host + ":" + port + ";UID=" + user + ";PAGINATION=" + pagination;
 
         if (security) {
             Assert.assertNotNull(keystore_path, "Keystore path is mandatory when security is enabled");
             Assert.assertNotNull(keystore_pwd, "Keystore password is mandatory when security is enabled");
             Assert.assertNotNull(truststore_path, "Truststore path is mandatory when security is enabled");
-            Assert.assertNotNull(trustore_pwd, "Truststore password is mandatory when security is enabled");
+            Assert.assertNotNull(truststore_pwd, "Truststore password is mandatory when security is enabled");
             jdbcConnection = jdbcConnection + ";SSL=true;KEYSTORE=" + keystore_path +
-                    ";KEYSTORE_PWD=" + keystore_pwd + ";TRUSTSTORE=" + truststore_path + ";TRUSTSTORE_PWD=" + trustore_pwd;
+                    ";KEYSTORE_PWD=" + keystore_pwd + ";TRUSTSTORE=" + truststore_path + ";TRUSTSTORE_PWD=" + truststore_pwd;
         }
 
         if (password != null) {
