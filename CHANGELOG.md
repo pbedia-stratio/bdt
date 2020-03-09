@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.15.0 (upcoming)
+
+* Pending changelog
+
 ## 0.14.0 (upcoming)
 
 * [GS-1830] Added scim type to HTTP requests
