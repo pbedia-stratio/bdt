@@ -4,6 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.15.0 (upcoming)
 
+* [PIT-460] Teardown service from CCT(deploy-api)
 * [PIT-461] Scale up service from CCT
 * [PIT-449] Improve obtain task status from the CCT version
 * [QATM-3183] Fix @dcos annotation if some container is null

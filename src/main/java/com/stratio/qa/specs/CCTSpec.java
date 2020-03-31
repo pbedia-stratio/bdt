@@ -49,6 +49,44 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
+     * TearDown a service with deploy-api
+     * @param service
+     * @throws Exception
+     */
+    @Given("^I teardown the service '(.+?)' of tenant '(.+?)'")
+    public void tearDownService(String service, String tenant) throws Exception {
+        if (ThreadProperty.get("deploy_api_id") == null) {
+            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
+        }
+        String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/teardown?frameworkName=" + service;
+        Future<Response> response;
+        response = commonspec.generateRequest("DELETE", false, null, null, endPoint, "", null, "");
+        commonspec.setResponse("DELETE", response.get());
+        if (commonspec.getResponse().getStatusCode() != 200 || commonspec.getResponse().getStatusCode() != 201) {
+            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
+        }
+        // Check service has disappeared
+        RestSpec restSpec = new RestSpec(commonspec);
+
+        String endPointStatus;
+        if (ThreadProperty.get("cct-marathon-services_id") == null) {
+            endPointStatus = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/status/all";
+        } else {
+            endPointStatus = "/service/" + ThreadProperty.get("cct-marathon-services_id") + "/v1/services?tenant=" + tenant;
+        }
+
+        String serviceName = "/" + service;
+        if (!"NONE".equals(tenant)) {
+            serviceName = "/" + tenant + "/" + tenant + "-" + service;
+        }
+        restSpec.sendRequestTimeout(200, 20, "GET", endPointStatus, "does not", serviceName);
+
+        // Check all resources have been freed
+        DcosSpec dcosSpec = new DcosSpec(commonspec);
+        dcosSpec.checkResources(serviceName);
+    }
+
+    /**
      * Scale service from deploy-api
      * @param service
      * @param instances
@@ -68,6 +106,7 @@ public class CCTSpec extends BaseGSpec {
             throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
         }
     }
+
 
     /**
      * Checks in Command Center service status
