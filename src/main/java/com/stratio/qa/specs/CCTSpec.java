@@ -49,6 +49,27 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
+     * Scale service from deploy-api
+     * @param service
+     * @param instances
+     * @throws Exception
+     */
+    @Given("^I scale service '(.+?)' to '(\\d+)' instances")
+    public void scaleService(String service, Integer instances) throws Exception {
+        if (ThreadProperty.get("deploy_api_id") == null) {
+            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
+        }
+        String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/scale?instances=" + instances + "&serviceName=" + service;
+        Future<Response> response;
+        response = commonspec.generateRequest("PUT", false, null, null, endPoint, "", null, "");
+        commonspec.setResponse("PUT", response.get());
+
+        if (commonspec.getResponse().getStatusCode() != 200 || commonspec.getResponse().getStatusCode() != 201) {
+            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
+        }
+    }
+
+    /**
      * Checks in Command Center service status
      * @param timeout
      * @param wait
