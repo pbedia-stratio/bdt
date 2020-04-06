@@ -4,6 +4,8 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.15.0 (upcoming)
 
+* [GS-1872] TestAT refactor for Gosec steps
+* [QATM-3200] update zookeeper client
 * [PIT-460] Teardown service from CCT(deploy-api)
 * [PIT-461] Scale up service from CCT
 * [PIT-449] Improve obtain task status from the CCT version
@@ -12,6 +14,17 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [PIT-458] Step to make CCT uninstallations independent from CCT version
 * [QATM-3183] Try/catch added in @dcos to avoid errors if container is wrong
 * [QATM-3222] Add local variable for governance cookie in setGoSecSSOCookie
+* [FRAM-4364] Test elastic
+* [QATM-3218] Add more bootstrap info
+* [PIT-450] Retrieve secrets from /people too
+* [PIT-447] add steps to work with Stratio HDFS Framework
+* [PIT-449]Task status from CCT
+* [PIT-448] Secured postgres steps
+* [QATM-3259] Get serviceId for service cct-universe
+* [PIT-448] new step not possible to consume
+* [FRAM-5147] Añadir propiedad para conectarte al bouncer de modo transaccional
+* [PIT-463] Steps to upload rules and descriptors to CCT
+* [QATM-3264] Set name in SSH tunnels
 
 ## 0.14.0 (March 09, 2020)
 

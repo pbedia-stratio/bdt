@@ -440,18 +440,37 @@ public class CommandExecutionSpec extends BaseGSpec {
      * @param tunnelHostPort
      * @param tunnelLocalPort
      *
-             */
-    @When("^I open a ssh tunnel to '(.+?)' with user '(.+?)' using pem file '(.+?)' to host ip '(.+?)' host port '(.+?)' to local port '(.+?)'")
-    public void openSshTunnelTo(String host, String user, String pemFilePath, String tunnelHostIp, String tunnelHostPort, String tunnelLocalPort) throws Exception {
-        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(user, null, host, null, pemFilePath), "tunnel");
+     */
+    @When("^I open a ssh tunnel to '(.+?)' with user '(.+?)' using pem file '(.+?)' to host ip '(.+?)' host port '(.+?)' to local port '(.+?)'( and save it with id '(.+?)')?")
+    public void openSshTunnelTo(String host, String user, String pemFilePath, String tunnelHostIp, String tunnelHostPort, String tunnelLocalPort, String sshConnectionId) throws Exception {
+        String sshConnectionIdAux = sshConnectionId != null ? sshConnectionId : host + "_" + user + "_tunnel";
+        if (RemoteSSHConnectionsUtil.getRemoteSSHConnectionsMap().get(sshConnectionId) != null) {
+            RemoteSSHConnectionsUtil.getRemoteSSHConnectionsMap().get(sshConnectionId).getSession().disconnect();
+        }
+        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(user, null, host, null, pemFilePath), sshConnectionIdAux);
         commonspec.getRemoteSSHConnection().openSshTunnel(host, user, pemFilePath, tunnelHostIp, tunnelHostPort, tunnelLocalPort);
+        RemoteSSHConnectionsUtil.setLastTunnelId(sshConnectionIdAux);
+    }
+
+    @Deprecated
+    public void openSshTunnelTo(String host, String user, String pemFilePath, String tunnelHostIp, String tunnelHostPort, String tunnelLocalPort) throws Exception {
+        openSshTunnelTo(host, user, pemFilePath, tunnelHostIp, tunnelHostPort, tunnelLocalPort, "tunnel");
     }
 
     /**
      * Close ssh tunnel to connect through calico to any component of a framework
      */
-    @Then ("^I close the ssh tunnel")
+    @Then ("^I close the ssh tunnel( with id '(.+?)')?")
+    public void closeSshTunnel(String tunnelId) throws Exception {
+        String tunnelIdAux = tunnelId != null ? tunnelId : RemoteSSHConnectionsUtil.getLastTunnelId();
+        closeSSHConnection(tunnelIdAux);
+        if (RemoteSSHConnectionsUtil.getLastTunnelId().equals(tunnelId)) {
+            RemoteSSHConnectionsUtil.setLastTunnelId(null);
+        }
+    }
+
+    @Deprecated
     public void closeSshTunnel() throws Exception {
-        closeSSHConnection("tunnel");
+        closeSSHConnection(RemoteSSHConnectionsUtil.getLastTunnelId());
     }
 }
