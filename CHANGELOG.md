@@ -4,6 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.15.0 (upcoming)
 
+* [PIT-479] Check services installed in folder
 * [GS-1957] Create step to remove user/group in tenant
 * [GS-1956] Create step to update Gosec resources
 * [GS-1954] Delete tenant if it exists
