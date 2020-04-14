@@ -152,6 +152,7 @@ public class CucumberRunner {
         uniqueGlue.add(new URI("classpath:com/stratio/qa/cucumber/converter"));
         uniqueGlue.add(new URI("classpath:com/stratio/logs_solution/specs"));
         uniqueGlue.add(new URI("classpath:com/stratio/marathonlbsec/specs"));
+        uniqueGlue.add(new URI("classpath:com/stratio/grafana/specs"));
 
         runtimeOptions.getGlue().clear();
         runtimeOptions.getGlue().addAll(uniqueGlue);

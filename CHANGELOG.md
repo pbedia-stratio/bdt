@@ -4,8 +4,8 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.16.0 (upcoming)
 
+* [EOS-3592] Add glue for Grafana
 * [PIT-482] Uninstall services installed in folder
-
 
 ## 0.15.0 (April 14, 2020)
 
