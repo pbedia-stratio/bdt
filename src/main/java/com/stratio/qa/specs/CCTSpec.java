@@ -1014,16 +1014,27 @@ public class CCTSpec extends BaseGSpec {
      * @param tenant    tenant where service is installed
      * @throws Exception
      */
-    @Given("^I uninstall service '(.+?)' from tenant '(.+?)'$")
-    public void uninstallService(String service, String tenant) throws Exception {
-        String tenant_prefix = "";
-
-        if (!"NONE".equals(tenant)) {
-            tenant_prefix = tenant + "/" + tenant + "-";
+    @Given("^I uninstall service '(.+?)'( in folder '(.+?)')? from tenant '(.+?)'$")
+    public void uninstallService(String service, String folder, String tenant) throws Exception {
+        if (folder != null && folder.startsWith("/")) {
+            folder = folder.substring(1);
+        }
+        if (folder != null && folder.endsWith("/")) {
+            folder = folder.substring(folder.length() - 1);
         }
 
-        String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/uninstall?app=" + tenant_prefix + service;
+        String serviceName = service;
+        if (folder != null) {
+            serviceName = folder + "/" + service;
+        }
+        if (!"NONE".equals(tenant)) {
+            serviceName = tenant + "/" + tenant + "-" + service;
+            if (folder != null) {
+                serviceName =  tenant + "/" + folder + "/" + tenant + "-" + service;
+            }
+        }
 
+        String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/uninstall?app=" + serviceName;
         Future<Response> response = commonspec.generateRequest("DELETE", true, null, null, endPoint, "", "json");
         commonspec.setResponse("DELETE", response.get());
 
@@ -1042,12 +1053,7 @@ public class CCTSpec extends BaseGSpec {
             endPointStatus = "/service/" + ThreadProperty.get("cct-marathon-services_id") + "/v1/services?tenant=" + tenant;
         }
 
-        String serviceName = "/" + service;
-        if (!"NONE".equals(tenant)) {
-            serviceName = "/" + tenant + "/" + tenant + "-" + service;
-        }
         restSpec.sendRequestTimeout(200, 20, "GET", endPointStatus, "does not", serviceName);
-
         // Check all resources have been freed
         DcosSpec dcosSpec = new DcosSpec(commonspec);
         dcosSpec.checkResources(serviceName);
