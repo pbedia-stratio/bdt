@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.16.0 (upcoming)
+
+* Pending changelog
+
 ## 0.15.0 (upcoming)
 
 * [GS-1965] Set warning message instead of exception when gosec variables are not defined
