@@ -48,3 +48,7 @@ Feature: Simple check values test
     Then '!{EVAR}' is different from 'Not Different'
     And I run 'echo "15"' in the ssh connection and save the value in environment variable 'EVAR'
     Then '!{EVAR}' is different from '25'
+
+  Scenario: Contains with especial characters
+    When I run 'echo "Cómo"' locally
+    Then the command output contains 'Cómo'
