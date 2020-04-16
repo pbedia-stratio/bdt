@@ -19,7 +19,7 @@ Feature: Selenium run test
     When I securely browse to '/'
 
   Scenario: Checking element steps
-    Given My app is running in 'jenkins.stratio.com'
+    Given My app is running in 'jenkins.int.stratio.com'
     When I browse to '/'
     Then in less than '20' seconds, checking each '2' seconds, '1' elements exists with 'id:side-panel'
     When '1' elements exists with 'xpath://*[@id="header"]/div[2]/a/b'

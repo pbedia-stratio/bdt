@@ -309,7 +309,7 @@ public class CCTSpec extends BaseGSpec {
         response = commonspec.generateRequest("PUT", false, null, null, endPoint, "", null, "");
         commonspec.setResponse("PUT", response.get());
 
-        if (commonspec.getResponse().getStatusCode() != 200 || commonspec.getResponse().getStatusCode() != 201) {
+        if (commonspec.getResponse().getStatusCode() != 200 && commonspec.getResponse().getStatusCode() != 201) {
             logger.error("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
             throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
         }

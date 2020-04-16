@@ -37,7 +37,7 @@ public class RestTest {
     public void testsendRequestDataTableTimeout() throws Exception {
         ThreadProperty.set("class", this.getClass().getCanonicalName());
         CommonG commong = new CommonG();
-        commong.setRestHost("jenkins.stratio.com");
+        commong.setRestHost("jenkins.int.stratio.com");
         commong.setRestPort(":80");
         String endPoint = "endpoint";
         String expectedMsg = "regex:tag";
@@ -64,7 +64,7 @@ public class RestTest {
         ThreadProperty.set("class", this.getClass().getCanonicalName());
         CommonG commong = new CommonG();
         commong.setClient(new AsyncHttpClient());
-        commong.setRestHost("jenkins.stratio.com");
+        commong.setRestHost("jenkins.int.stratio.com");
         commong.setRestPort(":80");
 
         Future<Response> response = commong.generateRequest("GET", false, null, null, "/job/AI/job/Nightly/", null, "string");
@@ -87,7 +87,7 @@ public class RestTest {
         ThreadProperty.set("class", this.getClass().getCanonicalName());
         CommonG commong = new CommonG();
         commong.setClient(new AsyncHttpClient());
-        commong.setRestHost("jenkins.stratio.com");
+        commong.setRestHost("jenkins.int.stratio.com");
         commong.setRestPort(":80");
 
         Future<Response> response = commong.generateRequest("GET", false, null, null, "/job/AI/job/Nightly/", null, "string");
