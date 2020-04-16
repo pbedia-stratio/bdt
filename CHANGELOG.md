@@ -8,6 +8,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [EOS-3592] Add glue for Grafana
 * [PIT-482] Uninstall services installed in folder
 * [PIT-483] Fix uninstall services check expression
+* [QATM-3214] Fix runOnEnv / skipOnEnv with local variables
 
 ## 0.15.0 (April 14, 2020)
 

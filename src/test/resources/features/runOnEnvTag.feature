@@ -49,4 +49,4 @@ Feature: Feature used in testing runOnEnv tag aspect
 
   @skipOnEnv(CUSTOM_WAIT)
   Scenario: SkipOnEnv with local param (it should not be executed)
-    Given I run 'sleep !{CUSTOM_WAIT}' locally
+    Given I run 'sleep !{CUSTOM_WAIT}' locally with exit status '2'

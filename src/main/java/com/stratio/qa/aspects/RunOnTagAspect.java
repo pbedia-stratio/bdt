@@ -20,9 +20,9 @@ import com.stratio.qa.utils.ThreadProperty;
 import gherkin.events.PickleEvent;
 import gherkin.pickles.PickleLocation;
 import gherkin.pickles.PickleTag;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +36,8 @@ public class RunOnTagAspect {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getCanonicalName());
 
-    @Pointcut("execution (* cucumber.runtime.filter.Filters.matchesFilters(..)) && " +
-              "args(pickleEvent)")
+    @Pointcut("execution (* cucumber.runner.Runner.runPickle(..)) && "
+            + "args (pickleEvent)")
     protected void AddRunOnTagPointcutScenario(PickleEvent pickleEvent) {
     }
 
@@ -69,8 +69,8 @@ public class RunOnTagAspect {
      * @param pickleEvent pickleEvent
      * @throws Throwable exception
      */
-    @Around(value = "AddRunOnTagPointcutScenario(pickleEvent)")
-    public boolean aroundAddRunOnTagPointcut(ProceedingJoinPoint pjp, PickleEvent pickleEvent) throws Throwable {
+    @Before(value = "AddRunOnTagPointcutScenario(pickleEvent)")
+    public void aroundAddRunOnTagPointcut(JoinPoint jp, PickleEvent pickleEvent) throws Throwable {
         int line = 0;
         if (!pickleEvent.pickle.getLocations().isEmpty()) {
             line = pickleEvent.pickle.getLocations().get(0).getLine();
@@ -85,7 +85,6 @@ public class RunOnTagAspect {
             pickleEvent.pickle.getTags().add(new PickleTag(new PickleLocation(line, 0), "@ignore"));
             pickleEvent.pickle.getTags().add(new PickleTag(new PickleLocation(line, 0), "@envCondition"));
         }
-        return (Boolean) pjp.proceed();
     }
 
     public boolean tagsIteration(List<PickleTag> tags, Integer line) throws Exception {
