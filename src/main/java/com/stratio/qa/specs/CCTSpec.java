@@ -1206,8 +1206,8 @@ public class CCTSpec extends BaseGSpec {
      * @param modifications     modifications to perform in the deployed json
      * @throws Exception
      */
-    @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)' based on version '(.+?)' with:$")
-    public void updateCCTService(String serviceName, String folder, String tenant, String version, DataTable modifications) throws Exception {
+    @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')? with:$")
+    public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile, DataTable modifications) throws Exception {
         if (ThreadProperty.get("deploy_api_id") == null) {
             fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
         }
@@ -1239,19 +1239,38 @@ public class CCTSpec extends BaseGSpec {
             throw e;
         }
 
-        // Obtain deployed service json
-        String endpointJson = "/service/" + ThreadProperty.get("deploy_api_id") + "/update/" + service + "?version=" + version;
-        Future<Response> responseJson = commonspec.generateRequest("GET", true, null, null, endpointJson, "", "json");
-        commonspec.setResponse("GET", responseJson.get());
+        String deployedJson = "";
 
-        if (commonspec.getResponse().getStatusCode() != 200) {
-            logger.error("Request to endpoint: " + endpointJson + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
-            throw new Exception("Request to endpoint: " + endpointJson + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
+        if (version == null && jsonFile == null || version != null && jsonFile != null) {
+            throw new Exception("Version or json file must be defined (but NOT both)");
         }
 
-        // Modify json according to provided changes
-        String deployedJson = commonspec.getResponse().getResponse();
-        String modifiedData = commonspec.modifyData(deployedJson, "json", modifications);
+        if (version != null) {
+            // Obtain deployed service json
+            String endpointJson = "/service/" + ThreadProperty.get("deploy_api_id") + "/update/" + service + "?version=" + version;
+            Future<Response> responseJson = commonspec.generateRequest("GET", true, null, null, endpointJson, "", "json");
+            commonspec.setResponse("GET", responseJson.get());
+
+            if (commonspec.getResponse().getStatusCode() != 200) {
+                logger.error("Request to endpoint: " + endpointJson + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
+                throw new Exception("Request to endpoint: " + endpointJson + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
+            }
+
+            // Modify json according to provided changes
+            deployedJson = commonspec.getResponse().getResponse();
+
+        }
+
+        if (jsonFile != null) {
+            deployedJson = this.commonspec.retrieveData(jsonFile, "json");
+        }
+
+        String modifiedData;
+        if (modifications != null) {
+            modifiedData = commonspec.modifyData(deployedJson, "json", modifications);
+        } else {
+            modifiedData = deployedJson;
+        }
 
         // Deploy new json
         String endpointUpdate = "/service/" + ThreadProperty.get("deploy_api_id") + "/update/" + service;
@@ -1262,6 +1281,20 @@ public class CCTSpec extends BaseGSpec {
             logger.error("Request to endpoint: " + endpointUpdate + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
             throw new Exception("Request to endpoint: " + endpointUpdate + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
         }
+    }
+
+    /**
+     * Update a deployed service
+     *
+     * @param serviceName       name of the service to be updated
+     * @param folder            (optional) name of the folder where service is deployed
+     * @param tenant            tenant where service is deployed
+     * @param version           version of the deployed service
+     * @throws Exception
+     */
+    @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')?$")
+    public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile) throws Exception {
+        updateCCTService(serviceName, folder, tenant, version, jsonFile, null);
     }
 
 

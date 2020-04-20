@@ -9,6 +9,9 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [PIT-482] Uninstall services installed in folder
 * [PIT-483] Fix uninstall services check expression
 * [QATM-3214] Fix runOnEnv / skipOnEnv with local variables
+* [PIT-485] fix teardown for services installed in folder
+* [PIT-486] add step to update deployed service
+* [PIT-487] add steps to handle single descriptor: create, update, delete
 
 ## 0.15.0 (April 14, 2020)
 
