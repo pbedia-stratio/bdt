@@ -4,6 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.16.0 (upcoming)
 
+* [PIT-475]Log management(in less than)
 * [QATM-3283] Fix step to scale services
 * [EOS-3592] Add glue for Grafana
 * [PIT-482] Uninstall services installed in folder

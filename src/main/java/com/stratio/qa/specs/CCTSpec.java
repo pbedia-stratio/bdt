@@ -63,6 +63,83 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
+     * Read last lines from logs of a service/framework
+     * @param logType
+     * @param service
+     * @param taskType
+     * @param logToCheck
+     * @throws Exception
+     */
+    @Given("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds,The '(stdout|stderr)' of service '(.+?)'( with task type '(.+?)')? contains '(.+?)'$")
+    public void readLogsInLessEachFromService(Integer timeout, Integer wait, String logType, String service, String taskType, String logToCheck) throws Exception {
+        commonspec.getLogger().debug("Start process of read from the mesos log");
+
+        String endPoint;
+        if (ThreadProperty.get("cct-marathon-services_id") == null) {
+            endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + " /deployments/service?instanceName=" + service;
+        } else {
+            endPoint = "/service/cct-marathon-services/v1/services/" + service;
+        }
+        Future<Response> response = null;
+        commonspec.getLogger().debug("Trying to send http request to: " + endPoint);
+        response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
+        if (response.get().getStatusCode() != 200) {
+            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
+        }
+        commonspec.setResponse(endPoint, response.get());
+        ArrayList<String> mesosTaskId = obtainMesosTaskInfo(commonspec.getResponse().getResponse(), taskType, "id");
+        commonspec.getLogger().info("Mesos Task Ids obtained successfully");
+        commonspec.getLogger().debug("Mesos task ids: "  + Arrays.toString(mesosTaskId.toArray()));
+        boolean contained = false;
+        int actualoffset = 0;
+        int lastoffset = 0;
+        for (int x = 0; (x <= timeout) && (!contained); x += wait) {
+            for (int i = 0; i < mesosTaskId.size() && !contained; i++) {
+                String endpointTask;
+                if (ThreadProperty.get("cct-marathon-services_id") == null) {
+                    endpointTask = "/service/" + ThreadProperty.get("deploy_api_id") + "/deployments/logs/" + taskType;
+                } else {
+                    endpointTask = "/service/cct-marathon-services/v1/services/tasks/" + taskType + "/logs";
+                }
+                commonspec.getLogger().debug("Trying to send http request to: " + endpointTask);
+                response = commonspec.generateRequest("GET", false, null, null, endpointTask, "", null);
+                if (response.get().getStatusCode() != 200) {
+                    throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
+                }
+                commonspec.setResponse("GET", response.get());
+                commonspec.getLogger().debug("Trying to obtain mesos logs path");
+                String path = obtainLogsPath(commonspec.getResponse().getResponse(), logType, "READ") + "/" + logType;
+                commonspec.getLogger().debug("Trying to read mesos logs");
+                response = commonspec.generateRequest("GET", false, null, null, path, "", null);
+                if (response.get().getStatusCode() != 200) {
+                    throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
+                }
+                JSONObject offSetJson = new JSONObject(response.get().getResponseBody());
+                actualoffset = offSetJson.getInt("offset");
+                endPoint = path + "&offset=" + lastoffset + "&length=" + actualoffset;
+                response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
+                if (response.get().getStatusCode() != 200) {
+                    throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
+                }
+                commonspec.setResponse("GET", response.get());
+                JSONObject cctJsonResponse = new JSONObject(commonspec.getResponse().getResponse());
+                String logs = "";
+                logs = cctJsonResponse.getString("data");
+                lastoffset = actualoffset;
+                if (logs.contains(logToCheck)) {
+                    contained = true;
+                }
+            }
+            if (x < timeout) {
+                Thread.sleep(wait * 1000);
+            }
+        }
+        if (!contained) {
+            fail("The log " + logToCheck + " is not contaided in the task logs");
+        }
+    }
+
+    /**
      * Download last lines from logs of a service/framework
      * @param logType
      * @param service
