@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.17.0 (upcoming)
+
+* Pending changelog
+
 ## 0.16.0 (upcoming)
 
 * [PIT-475]Log management(in less than)
