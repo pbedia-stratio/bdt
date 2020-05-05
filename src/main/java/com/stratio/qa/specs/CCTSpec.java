@@ -1825,6 +1825,68 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
+     * Get internal or external ip for service Id and tasks
+     *
+     * @param type          type of ip, internal (calico) or external
+     * @param serviceId     service Id including '/'
+     * @param taskName      name of task in the service
+     * @param envVar        environment variable where to store the read value
+     * @throws Exception
+     */
+    @Given("^I get the '(internal|external)' ip for service id '(.+?)' for task name '(.+?)'( and save it in environment variable '(.*?)')?")
+    public void getMachineIp(String type, String serviceId, String taskName, String envVar) throws Exception {
+
+        String ip = null;
+        String selector = null;
+        String status = null;
+        String labelStatus = null;
+
+        String endPointStatus;
+        if (ThreadProperty.get("cct-marathon-services_id") == null) {
+            endPointStatus = "/service/" + ThreadProperty.get("deploy_api_id") + "/deployments/service?instanceName=" + serviceId;
+            if (type.equals("external")) {
+                selector = "host";
+            } else {
+                selector = "calicoIP";
+            }
+            status = "TASK_RUNNING";
+            labelStatus = "state";
+        } else {
+            endPointStatus = "/service/" + ThreadProperty.get("cct-marathon-services_id") + "/v1/services" + serviceId;
+            if (type.equals("external")) {
+                selector = "host";
+            } else {
+                selector = "securedHost";
+            }
+            status = "RUNNING";
+            labelStatus = "status";
+        }
+
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+
+        Future<Response> response = commonspec.generateRequest("GET", false, null, null, endPointStatus, "", null, "");
+        commonspec.setResponse("GET", response.get());
+
+        JSONObject deployment = new JSONObject(commonspec.getResponse().getResponse());
+        JSONArray tasks = (JSONArray) deployment.get("tasks");
+
+        for (int i = 0; i < tasks.length(); i++) {
+            JSONObject item = tasks.getJSONObject(i);
+            if (item.getString("name").equals(taskName) && item.getString(labelStatus).equals(status)) {
+                ip = item.get(selector).toString();
+                break;
+            }
+        }
+
+        if (ip == null) {
+            throw new Exception("Not found " + type + " IP for task " + taskName + " of service Id " + serviceId);
+        } else if ((envVar != null) && (ip != null)) {
+            ThreadProperty.set(envVar, ip);
+        }
+    }
+
+    /**
      * Check service status has value specified
      *
      * @param service : name of the service to be checked

@@ -4,7 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.17.0 (upcoming)
 
-* Pending changelog
+* [QATM-3307] Get internal/external IP for tasks of the services
 
 ## 0.16.0 (April 29, 2020)
 
