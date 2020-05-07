@@ -941,6 +941,7 @@ public class DcosSpec extends BaseGSpec {
             obtainJSONInfoAndExpose(etcdInfo, "$.globals.overlayNetwork.addressPool", "ADDRESS_POOL", null);
         }
 
+        ThreadProperty.set("EOS_VAULT_PORT", "8200");
         obtainJSONInfo(response, "ROOT_TOKEN", "VAULT_TOKEN");
 
     }
@@ -1008,6 +1009,7 @@ public class DcosSpec extends BaseGSpec {
         String varAdminUser = "DCOS_USER";
         String varTenant = "DCOS_TENANT";
         String varVaultHost = "EOS_VAULT_HOST";
+        String varVaultPort = "EOS_VAULT_PORT";
         String varVaultToken = "VAULT_TOKEN";
         String varPublicNode = "PUBLIC_NODE";
         String varAccessPoint = "EOS_ACCESS_POINT";
@@ -1097,6 +1099,7 @@ public class DcosSpec extends BaseGSpec {
             obtainJSONInfo(descriptor, "ADMIN_USER", varAdminUser);
             obtainJSONInfo(descriptor, "TENANT", varTenant);
             obtainJSONInfo(descriptor, "VAULT_HOST", varVaultHost);
+            ThreadProperty.set(varVaultPort, "8200");
             obtainJSONInfo(descriptor, "REALM", varRealm);
             obtainJSONInfo(descriptor, "ACCESS_POINT", varAccessPoint);
             obtainJSONInfo(descriptor, "LDAP_URL", varLDAPurl);

@@ -340,6 +340,7 @@ public class MiscSpec extends BaseGSpec {
                     ThreadProperty.set("API_GROUPS", "/api/groups");
                     ThreadProperty.set("API_POLICIES", "/api/policies");
                     ThreadProperty.set("API_TAGS", "/api/policies/tags");
+                    ThreadProperty.set("API_SERVICE", "/api/service");
                 } else {
                     ThreadProperty.set("API_USER", "/api/user/");
                     ThreadProperty.set("API_GROUP", "/api/group/");
@@ -349,6 +350,7 @@ public class MiscSpec extends BaseGSpec {
                     ThreadProperty.set("API_GROUPS", "/api/group");
                     ThreadProperty.set("API_POLICIES", "/api/policy");
                     ThreadProperty.set("API_TAGS", "/api/policy/tag");
+                    ThreadProperty.set("API_SERVICE", "/api/service");
                 }
             }
         }
