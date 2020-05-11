@@ -744,7 +744,7 @@ public class DcosSpec extends BaseGSpec {
      * @param envVar : environment variable where to store retrieved information
      * @throws Exception
      */
-    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KRB_HOST|LDAP_HOST|VAULT_HOST|IP|ADMIN_USER|TENANT|ACCESS_POINT|LDAP_URL|LDAP_PORT|LDAP_USER_DN|LDAP_GROUP_DN|LDAP_BASE|LDAP_ADMIN_GROUP)' from descriptor and save it in environment variable '(.+?)'$")
+    @Given("^I obtain '(MASTERS|NODES|PRIV_NODES|PUBLIC_NODES|PUBLIC_NODE|GOSEC_NODES|ID|DNS_SEARCH|INTERNAL_DOMAIN|ARTIFACT_REPO|DOCKER_REGISTRY|EXTERNAL_DOCKER_REGISTRY|REALM|KDC_HOST|KDC_PORT|KADMIN_HOST|KADMIN_PORT|LDAP_HOST|VAULT_HOST|IP|ADMIN_USER|TENANT|ACCESS_POINT|LDAP_URL|LDAP_PORT|LDAP_USER_DN|LDAP_GROUP_DN|LDAP_BASE|LDAP_ADMIN_GROUP)' from descriptor and save it in environment variable '(.+?)'$")
     public void obtainInfoFromDescriptor(String info, String envVar) throws Exception {
         String jqExpression = "";
 
@@ -788,8 +788,17 @@ public class DcosSpec extends BaseGSpec {
             case "REALM":
                 jqExpression = "jq -crM .security.kerberos.realm";
                 break;
-            case "KRB_HOST":
+            case "KDC_HOST":
                 jqExpression = "jq -crM .security.kerberos.kdcHost";
+                break;
+            case "KDC_PORT":
+                jqExpression = "jq -crM .security.kerberos.kdcPort";
+                break;
+            case "KADMIN_HOST":
+                jqExpression = "jq -crM .security.kerberos.kadminHost";
+                break;
+            case "KADMIN_PORT":
+                jqExpression = "jq -crM .security.kerberos.kadminPort";
                 break;
             case "LDAP_HOST":
                 jqExpression = "jq -crM .security.ldap.url";
@@ -920,8 +929,15 @@ public class DcosSpec extends BaseGSpec {
         obtainJSONInfoAndExpose(etcdInfo, "$.eos.externalDockerRegistry", "EXTERNAL_DOCKER_REGISTRY", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.eos.artifactRepository", "ARTIFACT_REPOSITORY", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.eos.proxyAccessPointURL", "EOS_ACCESS_POINT", null);
+        obtainJSONInfoAndExpose(etcdInfo, "$.eos.consulDatacenter", "CONSUL_DATACENTER", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.globals.sso.ssoTenantDefault", "DCOS_TENANT", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.globals.kerberos.realm", "EOS_REALM", null);
+
+        obtainJSONInfoAndExpose(etcdInfo, "$.globals.kerberos.kdcHost", "KDC_HOST", null);
+        obtainJSONInfoAndExpose(etcdInfo, "$.globals.kerberos.kdcPort", "KDC_PORT", null);
+        obtainJSONInfoAndExpose(etcdInfo, "$.globals.kerberos.kadminHost", "KADMIN_HOST", null);
+        obtainJSONInfoAndExpose(etcdInfo, "$.globals.kerberos.kadminPort", "KADMIN_PORT", null);
+
         obtainJSONInfoAndExpose(etcdInfo, "$.globals.ldap.adminUserUuid", "DCOS_USER", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.globals.ldap.url", "LDAP_URL", null);
         obtainJSONInfoAndExpose(etcdInfo, "$.globals.ldap.port", "LDAP_PORT", null);
@@ -1018,6 +1034,12 @@ public class DcosSpec extends BaseGSpec {
         String varDockerRegistry = "DOCKER_REGISTRY";
         String varExternalDockerRegistry = "EXTERNAL_DOCKER_REGISTRY";
         String varArtifactRepository = "ARTIFACT_REPOSITORY";
+        String varConsulDatacenter = "CONSUL_DATACENTER";
+
+        String varKdcHost = "KDC_HOST";
+        String varKdcPort = "KDC_PORT";
+        String varKAdminHost = "KADMIN_HOST";
+        String varKAdminPort = "KADMIN_PORT";
 
         // LDAP values
         String varLDAPurl = "LDAP_URL";
@@ -1113,6 +1135,12 @@ public class DcosSpec extends BaseGSpec {
             obtainJSONInfo(descriptor, "DOCKER_REGISTRY", varDockerRegistry);
             obtainJSONInfo(descriptor, "EXTERNAL_DOCKER_REGISTRY", varExternalDockerRegistry);
             obtainJSONInfo(descriptor, "ARTIFACT_REPOSITORY", varArtifactRepository);
+            obtainJSONInfo(descriptor, "CONSUL_DATACENTER", varConsulDatacenter);
+
+            obtainJSONInfo(descriptor, "KDC_HOST", varKdcHost);
+            obtainJSONInfo(descriptor, "KDC_PORT", varKdcPort);
+            obtainJSONInfo(descriptor, "KADMIN_HOST", varKAdminHost);
+            obtainJSONInfo(descriptor, "KADMIN_PORT", varKAdminPort);
 
             obtainJSONInfo(response, "ROOT_TOKEN", varVaultToken);
         } else {
@@ -1176,8 +1204,17 @@ public class DcosSpec extends BaseGSpec {
             case "REALM":
                 jqExpression = "$.security.kerberos.realm";
                 break;
-            case "KRB_HOST":
+            case "KDC_HOST":
+                jqExpression = "$.security.kerberos.kdcPort";
+                break;
+            case "KDC_PORT":
                 jqExpression = "$.security.kerberos.kdcHost";
+                break;
+            case "KADMIN_HOST":
+                jqExpression = "$.security.kerberos.kadminHost";
+                break;
+            case "KADMIN_PORT":
+                jqExpression = "$.security.kerberos.kadminPort";
                 break;
             case "LDAP_HOST":
                 jqExpression = "$.security.ldap.url";
@@ -1222,6 +1259,9 @@ public class DcosSpec extends BaseGSpec {
                 break;
             case "ADDRESS_POOL":
                 jqExpression = "$.security.overlayNetwork.addressPool";
+                break;
+            case "CONSUL_DATACENTER":
+                jqExpression = "$.consulDatacenter";
                 break;
             default:
                 break;
