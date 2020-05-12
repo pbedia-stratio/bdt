@@ -4,7 +4,17 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.17.0 (upcoming)
 
+* [PIT-499] revamp gosec and cct steps to avoid set gosec sso token and rest host
 * [QATM-3307] Get internal/external IP for tasks of the services
+* [QATM-3312] Add two 'default' values to BDT
+* [PIT-523] Fix install step for EOS 0.23.X and Universe 0.4.22
+* [FRAM-5265] Fix contraints respuesta mesos slaves fallo en echo
+* [QATM-3318] Retrieve more params from descriptor/ETCD
+* [PIT-524] export EOS_VAULT_PORT with etcd value
+* [QATM-3240] Filter default log in debug mode
+
+## 0.16.1 (May 07, 2020)
+
 * [PIT-523] Fix install step for EOS 0.23.X and Universe 0.4.22
 
 ## 0.16.0 (April 29, 2020)
@@ -18,6 +28,18 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [PIT-485] fix teardown for services installed in folder
 * [PIT-486] add step to update deployed service
 * [PIT-487] add steps to handle single descriptor: create, update, delete
+* [GS-2007] Get profile from provided tenant
+* [PIT-498] revamp RestSpec class
+* [QATM-3296] Check status of last task
+* [FRAM-5214] Cambio constraints scheduler
+* [QATM-1850] Bump jackson-databind from 2.9.10.3 to 2.9.10.4
+* [PIT-493] fix for eos version 1.3.X
+* [PIT-497] add step to aread value from centralized configuration
+* [PIT-493] fix obtain vault ip and not internal name
+* [PIT-493] fix cleaning EOS_ACCESS_POINT variable
+* [PIT-493][PIT-494] obtain basic info from etcd and fix in obtaining cct services
+* [QATM-3288] Poder actualizar servicio de CCT también con json o sin modificaciones
+* [PIT-419] Encoding
 
 ## 0.15.0 (April 14, 2020)
 
