@@ -41,13 +41,13 @@ public class LdapUtilsIT {
 
     @Test
     public void searchAdminUserTest(){
-        String dn = System.getProperty("LDAP_USER");
-        String filter = System.getProperty("LDAP_USER").substring(0,System.getProperty("LDAP_USER").indexOf(","));
+        String dn = "cn=" + System.getProperty("LDAP_USER") + "," + System.getProperty("LDAP_BASE");
+        String filter = dn.substring(0,dn.indexOf(","));
         SearchRequest request = new SearchRequest(dn, filter);
         try {
             SearchResult  result = this.ldapUtils.search(request);
-            LdapEntry entry = result.getEntry(System.getProperty("LDAP_USER"));
-            assertThat(entry.getDn()).isEqualTo(System.getProperty("LDAP_USER"));
+            LdapEntry entry = result.getEntry(dn);
+            assertThat(entry.getDn()).isEqualTo(dn);
         } catch (LdapException e) {
             fail("Error searching LDAP: " + e);
         }

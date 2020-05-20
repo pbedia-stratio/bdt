@@ -91,7 +91,8 @@ hose {
         | -DKAFKA_HOSTS=%%KAFKA:29092
         | -DSSH=%%UBUNTU
         | -DSLEEPTEST=1
-        | -DLDAP_USER='cn=admin,dc=stratio,dc=com'
+        | -DLDAP_USER=admin
+        | -DLDAP_BASE=dc=stratio,dc=com
         | -DLDAP_PASSWORD=stratio
         | -DLDAP_SSL=false
         | -DVAULT_URL=%%VAULT

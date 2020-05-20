@@ -4,6 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.17.0 (upcoming)
 
+* [QATM-3333] Fix user management to connect to LDAP
 * [PIT-499] revamp gosec and cct steps to avoid set gosec sso token and rest host
 * [QATM-3307] Get internal/external IP for tasks of the services
 * [QATM-3312] Add two 'default' values to BDT

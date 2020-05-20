@@ -43,7 +43,7 @@ public class LdapUtils {
 
     private BlockingConnectionPool pool;
 
-    private String user;
+    private String queryUser;
 
     private String password;
 
@@ -52,7 +52,12 @@ public class LdapUtils {
     private String url;
 
     public LdapUtils() {
-        this.user = System.getProperty("LDAP_USER");
+        if (System.getProperty("LDAP_BASE") != null) {
+            this.queryUser = "cn=" + System.getProperty("LDAP_USER") + "," + System.getProperty("LDAP_BASE");
+        } else {
+            this.queryUser = "cn=" + System.getProperty("LDAP_USER") + "," + ThreadProperty.get("LDAP_BASE");
+        }
+
         this.password = System.getProperty("LDAP_PASSWORD");
         this.ssl = (System.getProperty("LDAP_SSL", "true")).equals("true") ? true : false;
         String ldapUrl = System.getProperty("LDAP_URL") != null ? System.getProperty("LDAP_URL") : ThreadProperty.get("LDAP_URL") != null ? ThreadProperty.get("LDAP_URL") : "";
@@ -64,7 +69,6 @@ public class LdapUtils {
         this.config = new ConnectionConfig();
         this.config.setLdapUrl(this.url);
         this.config.setUseSSL(this.ssl);
-
         // Use CA provided to trust LDAP certificate
         SslConfig sslCfg = new SslConfig();
         X509CredentialConfig crdCfg = new X509CredentialConfig();
@@ -72,7 +76,7 @@ public class LdapUtils {
         sslCfg.setCredentialConfig(crdCfg);
         this.config.setSslConfig(sslCfg);
 
-        this.config.setConnectionInitializer(new BindConnectionInitializer(user, new Credential(password)));
+        this.config.setConnectionInitializer(new BindConnectionInitializer(queryUser, new Credential(password)));
         this.pool = new BlockingConnectionPool(new DefaultConnectionFactory(this.config));
         if (!this.pool.isInitialized()) {
             this.pool.initialize();
