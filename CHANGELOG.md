@@ -6,7 +6,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 * Pending changelog
 
-## 0.17.0 (upcoming)
+## 0.17.0 (May 25, 2020)
 
 * [QATM-3333] Fix user management to connect to LDAP
 * [PIT-499] revamp gosec and cct steps to avoid set gosec sso token and rest host
