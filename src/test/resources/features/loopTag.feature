@@ -53,3 +53,10 @@ Feature: Feature used in testing loop tag aspect
     When I browse to '/'
     And I wait '5' seconds
     When '1' elements exists with 'xpath://div[@id="SIvCob"]/a[<VAR_NAME>]'
+
+  Scenario: Save local variable
+    Given I save '2,4,6' in variable 'LOCAL_VAR_LIST'
+
+  @loop(LOCAL_VAR_LIST,VAR_NAME)
+  Scenario: write <VAR_NAME> a file the final result of the scenario.
+    Given I run 'echo <VAR_NAME> >> testOutput.txt' locally

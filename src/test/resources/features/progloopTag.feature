@@ -25,3 +25,15 @@ Feature: Feature used in testing progamatic loop tag aspect
       | $.a | REPLACE | @{JSON.schemas/empty.json}     | object   |
     Given I save '@{JSON.testSOATtag<VAR_NAME>.json}' in variable 'VAR'
     Then I run '[ "!{VAR}" = "{"a":{}}" ]' locally
+
+  Scenario: Save local variable
+    Given I save '3' in variable 'LOCAL_PROGLOOP'
+
+  @progloop(LOCAL_PROGLOOP,VAR_NAME)
+  Scenario: Execute scenario !{LOCAL_PROGLOOP} times (local variable)
+    Given I run 'echo <VAR_NAME> > testProgLoopLocal.txt' locally
+
+  Scenario: Check local progloop
+    Given I run 'cat testProgLoopLocal.txt' locally
+    Then the command output contains '!{LOCAL_PROGLOOP}'
+    Given I run 'rm testProgLoopLocal.txt' locally

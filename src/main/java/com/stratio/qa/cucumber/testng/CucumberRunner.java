@@ -16,6 +16,7 @@
 
 package com.stratio.qa.cucumber.testng;
 
+import com.stratio.qa.cucumber.converter.LoopConverter;
 import cucumber.api.event.ConcurrentEventListener;
 import cucumber.api.event.TestRunFinished;
 import cucumber.api.event.TestRunStarted;
@@ -161,12 +162,15 @@ public class CucumberRunner {
     public void runScenario(PickleEvent pickle) throws Throwable {
         //Possibly invoked in a multi-threaded context
         Runner runner = runnerSupplier.get();
-        TestCaseResultListener testCaseResultListener = new TestCaseResultListener(runner.getBus(), runtimeOptions.isStrict());
-        runner.runPickle(pickle);
-        testCaseResultListener.finishExecutionUnit();
+        List<PickleEvent> pickleEventList = getPickleEventListFromTags(pickle);
+        for (PickleEvent pickleEvent : pickleEventList) {
+            TestCaseResultListener testCaseResultListener = new TestCaseResultListener(runner.getBus(), runtimeOptions.isStrict());
+            runner.runPickle(pickleEvent);
+            testCaseResultListener.finishExecutionUnit();
 
-        if (!testCaseResultListener.isPassed()) {
-            throw testCaseResultListener.getError();
+            if (!testCaseResultListener.isPassed()) {
+                throw testCaseResultListener.getError();
+            }
         }
     }
 
@@ -204,5 +208,12 @@ public class CucumberRunner {
             feature.sendTestSourceRead(bus);
         }
         return features;
+    }
+
+    private List<PickleEvent> getPickleEventListFromTags(PickleEvent pe) {
+        List<PickleEvent> pickleEventList = new ArrayList<>();
+        //pickleEventList.add(pe);
+        pickleEventList = LoopConverter.transformPickleEventWithLoopTags(pe);
+        return pickleEventList;
     }
 }

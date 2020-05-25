@@ -13,6 +13,10 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [QATM-3318] Retrieve more params from descriptor/ETCD
 * [PIT-524] export EOS_VAULT_PORT with etcd value
 * [QATM-3240] Filter default log in debug mode
+* [GS-2073] New steps to create users and groups with baas or management
+* [GS-2046] Delete gosec resources using baas if exists
+* [GS-2111] Refactor get PolicyId step for management-baas
+* [QATM-3284] Support to local variables in loop, multiloop and progloop tags
 
 ## 0.16.1 (May 07, 2020)
 

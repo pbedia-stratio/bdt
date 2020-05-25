@@ -28,7 +28,7 @@ Feature: Feature used in testing multiloop tag aspect
 
   Scenario: verify file 2 content.
     Given I run 'cat testMultiloopOutput2.txt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g'' locally
-    Then the command output contains '1,1\n2,1\n1,2\n2,2'
+    Then the command output contains '1,1\n1,2\n2,1\n2,2'
 
   Scenario: wipe test file 3.
       Given I run 'rm -f testMultiloopOutput3.txt' locally
@@ -43,7 +43,7 @@ Feature: Feature used in testing multiloop tag aspect
 
   Scenario: verify file 3 content.
     Given I run 'cat testMultiloopOutput3.txt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g'' locally
-    Then the command output contains '1,1,1\n2,1,1\n1,2,1\n2,2,1\n1,1,2\n2,1,2\n1,2,2\n2,2,2'
+    Then the command output contains '1,1,1\n1,1,2\n1,2,1\n1,2,2\n2,1,1\n2,1,2\n2,2,1\n2,2,2'
 
 #  @multiloop(AGENT1_LIST=>AGENT1_NAME,AGENT2_LIST=>AGENT2_NAME)
 #  Scenario: This is an omitted scenario so it contains a failing assert
@@ -81,4 +81,23 @@ Feature: Feature used in testing multiloop tag aspect
     And I wait '5' seconds
     When '1' elements exists with 'xpath://div[@id="SIvCob"]/a[<VAR1_NAME>]'
     When '1' elements exists with 'xpath://div[@id="SIvCob"]/a[<VAR2_NAME>]'
+
+  Scenario: Save local variable
+    Given I save '0,1' in variable 'LOCAL_VAR_LIST'
+    Given I save 'a,b,c' in variable 'LOCAL_VAR2_LIST'
+
+  Scenario: wipe testMultiloopOutputLocal
+    Given I run 'rm -f testMultiloopOutputLocal.txt' locally
+
+  @multiloop(LOCAL_VAR_LIST=>AGENT1_NAME,LOCAL_VAR2_LIST=>AGENT2_NAME)
+  Scenario: write <AGENT1_NAME>,<AGENT2_NAME> a file 2 with the final result of the scenario.
+    Given I run 'echo "<AGENT1_NAME>,<AGENT2_NAME>" >> testMultiloopOutputLocal.txt' locally
+
+  Scenario: verify file testMultiloopOutputLocal content size.
+    Given I run 'wc -l testMultiloopOutputLocal.txt' locally
+    Then the command output contains '6'
+
+  Scenario: verify file testMultiloopOutputLocal content
+    Given I run 'cat testMultiloopOutputLocal.txt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g'' locally
+    Then the command output contains '0,a\n0,b\n0,c\n1,a\n1,b\n1,c'
 
