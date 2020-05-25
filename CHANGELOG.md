@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.18.0 (upcoming)
+
+* Pending changelog
+
 ## 0.17.0 (upcoming)
 
 * [QATM-3333] Fix user management to connect to LDAP
