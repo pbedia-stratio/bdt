@@ -6,6 +6,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 * [QATM-3284] Fix loop replacement in datatables
 * Add base service clients and models
+* [QATM-3353] Fix createResourceIfNotExist method
 
 ## 0.17.0 (May 25, 2020)
 

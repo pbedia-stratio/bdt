@@ -235,7 +235,7 @@ public class GosecSpec extends BaseGSpec {
                             commonspec.getLogger().warn("Error deleting Policy {}: {}", resourceId, commonspec.getResponse().getResponse());
                             throw e;
                         }
-                        createResourceIfNotExist(resource, resourceId, endPoint, tenantOrig, tenantLoginInfo, loginInfo, doesNotExist, baseData, type, modifications);
+                        createResourceIfNotExist(resource, resourceId, tenantOrig, tenantLoginInfo, endPoint, loginInfo, doesNotExist, baseData, type, modifications);
                     }
                 }
             }
