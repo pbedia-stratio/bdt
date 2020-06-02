@@ -20,6 +20,7 @@ import com.ning.http.client.Response;
 import com.stratio.qa.clients.BaseClient;
 import com.stratio.qa.models.mesos.Log;
 import com.stratio.qa.models.mesos.MesosStateSummary;
+import com.stratio.qa.models.mesos.MesosTasksResponse;
 import com.stratio.qa.specs.CommonG;
 import com.stratio.qa.utils.ThreadProperty;
 
@@ -41,7 +42,7 @@ public class MesosApiClient extends BaseClient {
     }
 
     public Log getLogs(String path, String logType, Map<String, String> queryParams) throws Exception {
-        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":443");
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort());
         String endpoint = url.concat(path).concat(logType);
 
         if (queryParams != null) {
@@ -55,11 +56,17 @@ public class MesosApiClient extends BaseClient {
     }
 
     public MesosStateSummary getStateSummary() throws Exception {
-        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":443").concat("/mesos/state-summary");
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/mesos/state-summary");
 
         Response response = get(url);
         return map(response, MesosStateSummary.class);
     }
 
+    public MesosTasksResponse getMesosTask(String taskId) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/mesos/tasks?task_id=");
+        url = url.concat(taskId);
 
+        Response response = get(url);
+        return map(response, MesosTasksResponse.class);
+    }
 }

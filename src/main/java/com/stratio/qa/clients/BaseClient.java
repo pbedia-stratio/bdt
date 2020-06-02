@@ -42,11 +42,21 @@ public class BaseClient {
 
     protected ObjectMapper mapper = new ObjectMapper();
 
+    private String port = "443";
+
     protected BaseClient(CommonG common) {
 
         this.httpClient = common.getClient();
         this.cookies = common.getCookies();
         this.log = common.getLogger();
+    }
+
+    public void setPort(String port) {
+        this.port = port;
+    }
+
+    public String getPort() {
+        return  this.port;
     }
 
     public BaseResponse map(Response response) throws Exception {
@@ -62,8 +72,8 @@ public class BaseClient {
         try {
             r = mapper.readValue(response.getResponseBody(), type);
         } catch (Exception e) {
-            log.error(e.getMessage());
-            log.debug("Error mapping response to " + type.getCanonicalName() + ". Setting empty...");
+            log.warn(e.getMessage());
+            log.warn("Error mapping response to " + type.getCanonicalName() + ". Setting empty...");
             r = type.newInstance();
         }
 
@@ -79,7 +89,8 @@ public class BaseClient {
         try {
             r = mapper.readValue(response.getResponseBody(), new TypeReference<List<T>>() { });
         } catch (Exception e) {
-            log.debug("Error mapping response to " + type.getCanonicalName() + ". Setting empty...");
+            log.warn(e.getMessage());
+            log.warn("Error mapping response to " + type.getCanonicalName() + ". Setting empty...");
             r = r = new ArrayList<>();
         }
 
