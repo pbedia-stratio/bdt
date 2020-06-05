@@ -160,6 +160,9 @@ public class DcosSpec extends BaseGSpec {
             if (ssoCookies.get("stratio-governance-auth") != null) {
                 ThreadProperty.set("dcosGovernanceAuthCookie", ssoCookies.get("stratio-governance-auth"));
             }
+            if (ssoCookies.get("user") != null) {
+                ThreadProperty.set("dcosUserCookie", ssoCookies.get("user"));
+            }
             commonspec.setCookies(cookiesAtributes);
         }
     }
