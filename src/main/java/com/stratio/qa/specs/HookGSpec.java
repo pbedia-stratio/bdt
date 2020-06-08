@@ -73,6 +73,8 @@ public class HookGSpec extends BaseGSpec {
 
     public static boolean loggerEnabled = true;
 
+    public static final int ORDER_30 = 30;
+
     /**
      * Default constructor.
      *
@@ -85,6 +87,28 @@ public class HookGSpec extends BaseGSpec {
     /**
      * Clean the exception list.
      */
+    @Before(order = ORDER_30, value = "@cypress")
+    public void cypressSetup() throws Exception {
+        String checkCypressCommand = "npm list cypress";
+        commonspec.getLogger().info("Checking if Cypress is installed and updated...");
+        commonspec.runLocalCommand(checkCypressCommand);
+        if (commonspec.getCommandExitStatus() == 0) {
+            commonspec.getLogger().info("Cypress already installed and updated.");
+            return;
+        }
+        String installCypressCommand = "npm install --loglevel=error --depth=0";
+        commonspec.getLogger().info("Cypress not installed or updated, proceeding...");
+        commonspec.runLocalCommand(installCypressCommand);
+        commonspec.getLogger().info(commonspec.getCommandResult());
+        commonspec.getLogger().info("Checking...");
+        commonspec.runLocalCommand(checkCypressCommand);
+        if (commonspec.getCommandExitStatus() != 0) {
+            commonspec.getLogger().error("Cypress not installed, check your npm package.json file to be sure that Cypress is included.");
+            throw new Exception("Cypress not installed, check your npm package.json file to be sure that Cypress is included.");
+        }
+        commonspec.getLogger().info("Cypress installed successfully.");
+    }
+
     @Before(order = ORDER_0)
     public void globalSetup() {
         commonspec.getExceptions().clear();
