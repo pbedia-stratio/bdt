@@ -50,6 +50,8 @@ public class GosecSpec extends BaseGSpec {
 
     RestSpec restSpec;
 
+    MiscSpec miscSpec;
+
     /**
      * Generic constructor.
      *
@@ -58,6 +60,7 @@ public class GosecSpec extends BaseGSpec {
     public GosecSpec(CommonG spec) {
         this.commonspec = spec;
         restSpec = new RestSpec(spec);
+        miscSpec = new MiscSpec(spec);
     }
 
     /**
@@ -1313,6 +1316,41 @@ public class GosecSpec extends BaseGSpec {
         } catch (Exception e) {
             commonspec.getLogger().warn("Error creating custom {} {}: {}", resource, resourceName, commonspec.getResponse().getResponse());
             throw e;
+        }
+    }
+
+    @When("^I get version of service '(.+?)' with id '(.+?)'( in tenant '(.+?)')?( with tenant user and tenant password '(.+:.+?)')? and save it in environment variable '(.+?)'$")
+    public void getServiceVersion(String serviceType, String serviceId, String tenant, String tenantLoginInfo, String envVar) throws Exception {
+        String endpoint = "/service/gosecmanagement/api/service";
+        String gosecVersion = ThreadProperty.get("gosec-management_version");
+        String managementBaasVersion = ThreadProperty.get("gosec-management-baas_version");
+
+        if (tenant != null) {
+            commonspec.setCCTConnection(tenant, tenantLoginInfo);
+        }
+        if (managementBaasVersion != null) {
+            endpoint = "/service/gosec-management-baas/management/services";
+        }
+
+        restSpec.sendRequestNoDataTable("GET", endpoint, null, null, null);
+        if (commonspec.getResponse().getStatusCode() == 200) {
+            if (managementBaasVersion != null) {
+                miscSpec.saveElementEnvironment(null, "$.[?(@.serviceType == \"" + serviceType + "\")].versionList[*]", "BDT_PLUGINS");
+                String bdtPlugins = ThreadProperty.get("BDT_PLUGINS");
+                commonspec.runLocalCommand("echo '" + bdtPlugins + "' | jq '.[] | select (.serviceList[].name == \"" + serviceId + "\").version' | tr -d '\"'");
+                commonspec.runCommandLoggerAndEnvVar(0, envVar, Boolean.TRUE);
+            } else {
+                if (gosecVersion.startsWith("0")) {
+                    ThreadProperty.set(envVar, "N/A");
+                } else {
+                    miscSpec.saveElementEnvironment(null, "$.[?(@.type == \"" + serviceType + "\")].pluginList[*]", "BDT_PLUGINS");
+                    String bdtPlugins = ThreadProperty.get("BDT_PLUGINS");
+                    commonspec.runLocalCommand("echo '" + bdtPlugins + "' | jq -Mrc '.[] as $parent | $parent.instanceList[] | select (.name == \"" + serviceId + "\" and .status == \"READY\") | $parent.version'");
+                    commonspec.runCommandLoggerAndEnvVar(0, envVar, Boolean.TRUE);
+                }
+            }
+        } else {
+            fail("GET request to endpoint " + endpoint + " returns " + commonspec.getResponse().getStatusCode());
         }
     }
 }
