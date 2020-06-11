@@ -96,7 +96,7 @@ public class HookGSpec extends BaseGSpec {
             commonspec.getLogger().info("Cypress already installed and updated.");
             return;
         }
-        String installCypressCommand = "npm install --loglevel=error --depth=0";
+        String installCypressCommand = "npm install --loglevel=error --depth=0 --registry=http://niquel.stratio.com/repository/publicnpm/";
         commonspec.getLogger().info("Cypress not installed or updated, proceeding...");
         commonspec.runLocalCommand(installCypressCommand);
         commonspec.getLogger().info(commonspec.getCommandResult());
