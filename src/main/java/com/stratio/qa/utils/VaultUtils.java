@@ -18,6 +18,7 @@ package com.stratio.qa.utils;
 
 import com.stratio.qa.specs.CommonG;
 import java.util.Random;
+import org.assertj.core.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,8 @@ public class VaultUtils {
     private String basePath;
 
     private String caBasePath = "/ca-trust";
+
+    private int numCaTrust = 1;
 
     private String certificatesPath = "/certificates/";
 
@@ -106,14 +109,37 @@ public class VaultUtils {
         this.getPrivateCertificate(certPath, certValue);
     }
 
-    public void getCABundle() throws Exception {
-        String certificatePath = caBasePath + certificatesPath + "ca";
-        String filter = "jq -r '.data.\"ca_crt\"'";
-        this.getDataFromPath(certificatePath, filter);
+    public void getCABundle(boolean truststore) throws Exception {
+        String certificate = "";
+        String filter = "";
+        String certificatePath = "";
+        String commandGetCABundle = "";
 
-        String commandGetCABundle = "echo " + vaultData + " | " + certPubReplacements + " | fold -64 > " + baseOutputSecretPath + "ca.crt";
-        logger.debug("Getting CA Bundle: " + commandGetCABundle);
-        comm.runLocalCommand(commandGetCABundle);
+        String caTrustListPath = caBasePath + certificatesPath;
+        String command = "curl -X LIST -fskL --tlsv1.2 -H \"X-Vault-Token:" + token + "\" \"" + protocol + host + ":8200/v1" + caTrustListPath + "\" | jq -cM .data.keys | jq '. | length'";
+        comm.runLocalCommand(command);
+
+        Assertions.assertThat(comm.getCommandResult()).isNotEmpty();
+
+        numCaTrust = Integer.parseInt(comm.getCommandResult());
+        for (int i = 0; i < numCaTrust; i++) {
+            command = "curl -X LIST -fskL --tlsv1.2 -H \"X-Vault-Token:" + token + "\" \"" + protocol + host + ":8200/v1" + caTrustListPath + "\" | jq -cMr .data.keys[" + i + "]";
+            comm.runLocalCommand(command);
+            certificate = comm.getCommandResult();
+
+            certificatePath = caBasePath + certificatesPath + certificate;
+            filter = "jq -r '.data.\"" + certificate + "_crt\"'";
+            this.getDataFromPath(certificatePath, filter);
+
+            commandGetCABundle = "echo " + vaultData + " | " + certPubReplacements + " | fold -64 >> " + baseOutputSecretPath + "ca.crt";
+            logger.debug("Getting CA Bundle from '" + certificate + "': " + commandGetCABundle);
+            comm.runLocalCommand(commandGetCABundle);
+
+            if (truststore) {
+                commandGetCABundle = "echo " + vaultData + " | " + certPubReplacements + " | fold -64 > " + baseOutputSecretPath + "caForTruststore_" + i + ".crt";
+                comm.runLocalCommand(commandGetCABundle);
+            }
+        }
     }
 
     public void getPEMCertificate(String certPath, String certValue) throws Exception {
@@ -153,14 +179,18 @@ public class VaultUtils {
     }
 
     public void getTruststoreCABundle(String passVarName) throws Exception {
-        this.getCABundle();
+        this.getCABundle(true);
 
-        String ca = baseOutputSecretPath + "ca.crt";
+        String ca = "";
+        String commandCreateTruststore = "";
         String pass = this.createRandomPassword();
 
-        String commandCreateTruststore = "keytool -import -noprompt -alias ca -keystore " + baseOutputSecretPath + "truststore.jks -storepass " + pass + " -file " + ca + " 2>&1";
-        logger.debug("Creating Truststore with CA Bundle: " + commandCreateTruststore);
-        comm.runLocalCommand(commandCreateTruststore);
+        for (int i = 0; i < numCaTrust; i++) {
+            ca = baseOutputSecretPath + "caForTruststore_" + i + ".crt";
+            commandCreateTruststore = "keytool -import -noprompt -alias ca" + i + " -keystore " + baseOutputSecretPath + "truststore.jks -storepass " + pass + " -file " + ca + " 2>&1";
+            logger.debug("Creating Truststore with CA Bundle from '" + ca + "': " + commandCreateTruststore);
+            comm.runLocalCommand(commandCreateTruststore);
+        }
 
         ThreadProperty.set(passVarName, pass);
     }

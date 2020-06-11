@@ -16,7 +16,12 @@
 
 package com.stratio.qa.specs;
 
+import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.java.en.Given;
+import java.io.File;
+import java.io.FileInputStream;
+import org.apache.commons.io.IOUtils;
+import org.assertj.core.api.Assertions;
 
 
 /**
@@ -53,6 +58,11 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPEMKEYCertificate(path, value);
+
+        File filePem = new File("target/test-classes/" + value + ".pem");
+        Assertions.assertThat(filePem.length()).isGreaterThan(1);
+        File fileKey = new File("target/test-classes/" + value + ".key");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(1);
     }
 
     /**
@@ -71,6 +81,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPEMCertificate(path, value);
+
+        File filePem = new File("target/test-classes/" + value + ".pem");
+        Assertions.assertThat(filePem.length()).isGreaterThan(1);
     }
 
     /**
@@ -89,6 +102,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getKEYCertificate(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".key");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(1);
     }
 
     /**
@@ -100,7 +116,15 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get CA Bundle$")
     public void getCA() throws Exception {
-        commonspec.getVaultUtils().getCABundle();
+        commonspec.getVaultUtils().getCABundle(false);
+
+        File fileCABundle = new File("target/test-classes/ca.crt");
+        Assertions.assertThat(fileCABundle.length()).isGreaterThan(1);
+        try (FileInputStream fileCABundleInputStream = new FileInputStream("target/test-classes/ca.crt")) {
+            String fileCABundleContent = IOUtils.toString(fileCABundleInputStream);
+            Assertions.assertThat(fileCABundleContent).isNotEqualToIgnoringCase("null\n");
+        }
+
     }
 
     /**
@@ -120,6 +144,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPKCS12Certificate(path, value, envVar);
+
+        File fileP12 = new File("target/test-classes/" + value + ".p12");
+        Assertions.assertThat(fileP12).exists();
     }
 
     /**
@@ -139,6 +166,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getKeystore(path, value, envVar);
+
+        File fileJKS = new File("target/test-classes/" + value + ".jks");
+        Assertions.assertThat(fileJKS).exists();
     }
 
     /**
@@ -157,6 +187,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPKCS8Certificate(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".pk8");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(0);
     }
 
     /**
@@ -169,6 +202,9 @@ public class VaultSpec extends BaseGSpec {
     @Given("^I get Truststore containing CA Bundle and save the password in environment variable '(.+?)'$")
     public void getTruststoreWithCABundle(String envVar) throws Exception {
         commonspec.getVaultUtils().getTruststoreCABundle(envVar);
+
+        File fileTruststore = new File("target/test-classes/truststore.jks");
+        Assertions.assertThat(fileTruststore).exists();
     }
 
     /**
@@ -187,6 +223,9 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getKeytabKrb(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".keytab");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(0);
     }
 
     /**
@@ -204,6 +243,8 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPrincipalKrb(path, value, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
     }
 
     /**
@@ -220,6 +261,8 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getPass(path, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
     }
 
     /**
@@ -236,6 +279,8 @@ public class VaultSpec extends BaseGSpec {
             commonspec.getVaultUtils().setBasePathToPeople();
         }
         commonspec.getVaultUtils().getUser(path, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
     }
 
 }
