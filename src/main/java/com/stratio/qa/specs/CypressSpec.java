@@ -46,14 +46,15 @@ public class CypressSpec extends BaseGSpec {
         this.commonspec = spec;
     }
 
-    @Given("^I run on Cypress with host '(.+?)' and token '(.+?)' and testcase '(.+?)' with path '(.+?)'( and store video evidences with key '(.+?)')?( and with exit status '(\\d+)')?( and save the value in environment variable '(.+?)')?$")
-    public void executeCypresswithURLwithVideo(String url, String token, String testcase, String path, String key, Integer sExitStatus, String envVar) throws Exception {
+    @Given("^I run on Cypress with host '(.+?)' and token '(.+?)' and testcase '(.+?)' with path '(.+?)'( and store video evidences with path '(.+?)')?( and with exit status '(\\d+)')?( and save the value in environment variable '(.+?)')?$")
+    public void executeCypresswithURLwithVideo(String url, String token, String testcase, String path, String videopath, Integer sExitStatus, String envVar) throws Exception {
         Integer exitStatus = sExitStatus == null ? 0 : sExitStatus;
         String Command;
-        if (key == null) {
+        if (videopath == null) {
             Command = "CYPRESS_BASE_URL=https://" + url + " CYPRESS_TOKEN=" + token + " npx cypress run --spec cypress/integration" + path + "/" + testcase + ".spec.ts";
         } else {
-            Command = "CYPRESS_BASE_URL=https://" + url + " CYPRESS_TOKEN=" + token + " npx cypress run --record --key " + key + " --spec cypress/integration" + path + "/" + testcase + ".spec.ts";
+            Command = "CYPRESS_BASE_URL=https://" + url + " CYPRESS_TOKEN=" + token + " npx cypress run --spec cypress/integration" + path + "/" + testcase + ".spec.ts --config trashAssetsBeforeRuns=false,videoUploadOnPasses=true,videosFolder=" + videopath;
+
         }
         commonspec.runLocalCommand(Command);
         commonspec.runCommandLoggerAndEnvVar(exitStatus, envVar, Boolean.TRUE);
