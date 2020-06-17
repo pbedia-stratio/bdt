@@ -54,9 +54,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in PEM/KEY format( in /people)?$")
     public void getCertificate(String value, String path, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPEMKEYCertificate(path, value);
 
         File filePem = new File("target/test-classes/" + value + ".pem");
@@ -77,9 +75,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in PEM format( in /people)?$")
     public void getPubCertificate(String value, String path, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPEMCertificate(path, value);
 
         File filePem = new File("target/test-classes/" + value + ".pem");
@@ -98,9 +94,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in KEY format( in /people)?$")
     public void getKeyCertificate(String value, String path, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getKEYCertificate(path, value);
 
         File fileKey = new File("target/test-classes/" + value + ".key");
@@ -140,9 +134,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in P12 format and save the password in environment variable '(.+?)'( in /people)?$")
     public void getP12Certificate(String value, String path, String envVar, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPKCS12Certificate(path, value, envVar);
 
         File fileP12 = new File("target/test-classes/" + value + ".p12");
@@ -162,9 +154,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in JKS and save the password in environment variable '(.+?)'( in /people)?$")
     public void getJKSCertificate(String value, String path, String envVar, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getKeystore(path, value, envVar);
 
         File fileJKS = new File("target/test-classes/" + value + ".jks");
@@ -183,9 +173,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get certificate '(.+?)' from path '(.+?)' in PK8 format( in /people)?$")
     public void getPK8Certificate(String value, String path, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPKCS8Certificate(path, value);
 
         File fileKey = new File("target/test-classes/" + value + ".pk8");
@@ -219,9 +207,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get keytab '(.+?)' from path '(.+?)'( in /people)?$")
     public void getKeytab(String value, String path, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getKeytabKrb(path, value);
 
         File fileKey = new File("target/test-classes/" + value + ".keytab");
@@ -239,9 +225,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get principal '(.+?)' from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
     public void getPrincipal(String value, String path, String envVar, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPrincipalKrb(path, value, envVar);
 
         Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
@@ -257,9 +241,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get password from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
     public void getPwd(String path, String envVar, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getPass(path, envVar);
 
         Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
@@ -275,9 +257,7 @@ public class VaultSpec extends BaseGSpec {
      */
     @Given("^I get user from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
     public void getUsr(String path, String envVar, String inPeople) throws Exception {
-        if (inPeople != null) {
-            commonspec.getVaultUtils().setBasePathToPeople();
-        }
+        commonspec.getVaultUtils().setBasePath(inPeople != null);
         commonspec.getVaultUtils().getUser(path, envVar);
 
         Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();

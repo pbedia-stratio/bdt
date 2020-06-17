@@ -70,8 +70,17 @@ public class VaultUtils {
         this.protocol = protocol;
     }
 
+    @Deprecated
     public void setBasePathToPeople() {
         this.basePath = this.peopleBasePath;
+    }
+
+    public void setBasePath(boolean people) {
+        if (people) {
+            this.basePath = this.peopleBasePath;
+        } else {
+            this.basePath = this.userlandBasePath;
+        }
     }
 
     private void getDataFromPath(String dataPath, String filter) throws Exception {

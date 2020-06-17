@@ -11,6 +11,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * Add base service clients and models
 * [QATM-3353] Fix createResourceIfNotExist method
 * [QATM-3375] New step to obtain registered version of a service in gosec management
+* [QATM-3389] Set always default path in Vault specs
 
 ## 0.17.0 (May 25, 2020)
 
