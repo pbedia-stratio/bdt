@@ -11,3 +11,7 @@ Feature: assertCommandExistsOnTimeOutIT - Check command output with exit status
 
   Scenario: Check command output without exit status
     Then in less than '50' seconds, checking each '10' seconds, the command output 'echo 2018 | grep -e "[0-9]\{4\}" | wc -l' contains '1'
+
+  Scenario: Check command output equals
+    Then in less than '50' seconds, checking each '10' seconds, the command output 'echo 2018 | grep -e "[0-9]\{4\}" | wc -l' is equal to '1'
+    Then in less than '50' seconds, checking each '10' seconds, the command output 'echo 2018 | grep -e "[0-9]\{4\}" | wc -l' is not equal to '2'

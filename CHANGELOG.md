@@ -12,6 +12,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [QATM-3353] Fix createResourceIfNotExist method
 * [QATM-3375] New step to obtain registered version of a service in gosec management
 * [QATM-3389] Set always default path in Vault specs
+* [SPK-861] New step to check if command output is equal to some value with timeout
 
 ## 0.17.0 (May 25, 2020)
 
