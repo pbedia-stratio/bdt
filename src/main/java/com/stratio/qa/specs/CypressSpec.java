@@ -16,19 +16,12 @@
 
 package com.stratio.qa.specs;
 
-import com.stratio.qa.utils.RemoteSSHConnection;
-import com.stratio.qa.utils.RemoteSSHConnectionsUtil;
-import com.stratio.qa.utils.ThreadProperty;
+import io.cucumber.datatable.DataTable;
 import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import org.assertj.core.api.Assertions;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Cypress Steps.
@@ -46,20 +39,28 @@ public class CypressSpec extends BaseGSpec {
         this.commonspec = spec;
     }
 
-    @Given("^I run on Cypress with host '(.+?)' and token '(.+?)' and testcase '(.+?)' with path '(.+?)'( and store video evidences with path '(.+?)')?( and with exit status '(\\d+)')?( and save the value in environment variable '(.+?)')?$")
-    public void executeCypresswithURLwithVideo(String url, String token, String testcase, String path, String videopath, Integer sExitStatus, String envVar) throws Exception {
+    @When("^I run on Cypress with testcase '(.+?)' with path '(.+?)'( and store video evidences with path '(.+?)')?( and with exit status '(\\d+)')?( and save the value in environment variable '(.+?)')?$")
+    public void executeCypresswithURLwithVideo(String testcase, String path, String videopath, Integer sExitStatus, String envVar, DataTable table) throws Exception {
         Integer exitStatus = sExitStatus == null ? 0 : sExitStatus;
-        String Command;
-        if (videopath == null) {
-            Command = "CYPRESS_BASE_URL=https://" + url + " CYPRESS_TOKEN=" + token + " npx cypress run --spec cypress/integration" + path + "/" + testcase + ".spec.ts";
-        } else {
-            Command = "CYPRESS_BASE_URL=https://" + url + " CYPRESS_TOKEN=" + token + " npx cypress run --spec cypress/integration" + path + "/" + testcase + ".spec.ts --config trashAssetsBeforeRuns=false,videoUploadOnPasses=true,videosFolder=" + videopath;
-
+        Map<String, String> variables;
+        String cypressVariables;
+        try {
+            variables = table.asMap(String.class, String.class);
+            cypressVariables = variables.keySet().stream().map(k -> k + "=" + variables.get(k))
+                    .collect(Collectors.joining(" ", "", ""));
+        } catch (Exception e) {
+            this.commonspec.getLogger().warn("Error parsing Datatable to map. Setting empty...");
+            cypressVariables = "";
         }
-        commonspec.runLocalCommand(Command);
+
+        String videoVariable = videopath == null ? "" : " --config trashAssetsBeforeRuns=false,videoUploadOnPasses=true,videosFolder=" + videopath;
+        String command = cypressVariables + " npx cypress run --spec cypress/integration" + path + "/" + testcase + ".spec.ts" + videoVariable;
+
+        this.commonspec.getLogger().info("Executing cypress: " + command);
+
+        commonspec.runLocalCommand(command);
         commonspec.runCommandLoggerAndEnvVar(exitStatus, envVar, Boolean.TRUE);
         Assertions.assertThat(commonspec.getCommandExitStatus()).isEqualTo(exitStatus);
-
     }
 
     @Given("^I run all Cypress tests with host '(.+?)' and token '(.+?)'( and with exit status '(\\d+)')?( and save the value in environment variable '(.+?)')?$")
