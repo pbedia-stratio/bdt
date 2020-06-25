@@ -161,16 +161,24 @@ public class CucumberRunner {
 
     public void runScenario(PickleEvent pickle) throws Throwable {
         //Possibly invoked in a multi-threaded context
+        Throwable e = null;
         Runner runner = runnerSupplier.get();
         List<PickleEvent> pickleEventList = getPickleEventListFromTags(pickle);
         for (PickleEvent pickleEvent : pickleEventList) {
-            TestCaseResultListener testCaseResultListener = new TestCaseResultListener(runner.getBus(), runtimeOptions.isStrict());
-            runner.runPickle(pickleEvent);
-            testCaseResultListener.finishExecutionUnit();
+            try {
+                TestCaseResultListener testCaseResultListener = new TestCaseResultListener(runner.getBus(), runtimeOptions.isStrict());
+                runner.runPickle(pickleEvent);
+                testCaseResultListener.finishExecutionUnit();
 
-            if (!testCaseResultListener.isPassed()) {
-                throw testCaseResultListener.getError();
+                if (!testCaseResultListener.isPassed()) {
+                    throw testCaseResultListener.getError();
+                }
+            } catch (Throwable e1) {
+                e = e1;
             }
+        }
+        if (e != null) {
+            throw e;
         }
     }
 

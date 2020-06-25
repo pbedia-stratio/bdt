@@ -4,6 +4,15 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.18.0 (upcoming)
 
+* [ROCK-1999] Add clients, models and Marathon spec
+* [ROCK-1999] Add some cct and marathon steps
+* [ROCK-1999] Fix deployapitest and refactor some client utils
+* [ROCK-1999] Not fail when app does not exists in Marathon
+* [ROCK-1998] Store rocket cookie for cypress tests
+* [ROCK-1998] Generate Steps for Cypress
+* [PIT-532] Fix retrieving CA bundle from Vault and add assertions
+* [ROCK-1935] Update @dcos & execute cypress with evidences
+* [PIT-568] add missing / in url for secrets generation/deletion
 * [GS-2212] Refactor step to get json policy with BaaS
 * [GS-2033] Fix delete policy with baas if it does not exist
 * [GS-2033] Added BaaaS endpoint creating policy and updating resources
@@ -14,6 +23,8 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [QATM-3389] Set always default path in Vault specs
 * Bump jackson-databind from 2.9.10.4 to 2.10.4
 * [SPK-861] New step to check if command output is equal to some value with timeout
+* [ROCK-1998] Parametrize variables with cypress
+* [CON-246] Fix loop break when some scenario was failed 
 
 ## 0.17.0 (May 25, 2020)
 
