@@ -24,7 +24,8 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * Bump jackson-databind from 2.9.10.4 to 2.10.4
 * [SPK-861] New step to check if command output is equal to some value with timeout
 * [ROCK-1998] Parametrize variables with cypress
-* [CON-246] Fix loop break when some scenario was failed 
+* [CON-246] Fix loop break when some scenario was failed
+* [PIT-611] Retrieve secrets from Vault using deploy-api
 
 ## 0.17.0 (May 25, 2020)
 

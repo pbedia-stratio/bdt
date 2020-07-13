@@ -27,11 +27,13 @@ import com.stratio.qa.models.cct.marathonServiceApi.DeployedService;
 import com.stratio.qa.models.cct.marathonServiceApi.DeployedServiceTask;
 import com.stratio.qa.models.cct.marathonServiceApi.TaskStatus;
 import com.stratio.qa.models.mesos.MesosTask;
+import com.stratio.qa.utils.CCTUtils;
 import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import io.cucumber.datatable.DataTable;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -57,6 +59,8 @@ public class CCTSpec extends BaseGSpec {
 
     private final Logger logger = LoggerFactory.getLogger(CCTSpec.class);
 
+    CCTUtils cctUtils;
+
     RestSpec restSpec;
 
     private DeployApiClient deployApiClient;
@@ -73,6 +77,7 @@ public class CCTSpec extends BaseGSpec {
     public CCTSpec(CommonG spec) {
         this.commonspec = spec;
         restSpec = new RestSpec(spec);
+        cctUtils = new CCTUtils(spec);
         deployApiClient = DeployApiClient.getInstance(this.commonspec);
         marathonServiceApiClient = CctMarathonServiceApiClient.getInstance(this.commonspec);
         mesosApiClient = MesosApiClient.getInstance(this.commonspec);
@@ -2094,6 +2099,227 @@ public class CCTSpec extends BaseGSpec {
         String value = commonspec.getJSONPathString(json, parsedElement, null);
 
         org.assertj.core.api.Assertions.assertThat(value).as("Inactive services").doesNotContain(service);
+    }
+
+    /**
+     * Get both PEM and KEY from specified certificate. The ouput files are:
+     *
+     *    target/test-classes/<value>.pem
+     *    target/test-classes/<value>.key
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @When("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in PEM/KEY format( in /people)?$")
+    public void getCertificate(String value, String path, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPEMKEYCertificate(path, value);
+
+        File filePem = new File("target/test-classes/" + value + ".pem");
+        Assertions.assertThat(filePem.length()).isGreaterThan(1);
+        File fileKey = new File("target/test-classes/" + value + ".key");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(1);
+    }
+
+    /**
+     * Get PEM from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.pem
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in PEM format( in /people)?$")
+    public void getPubCertificate(String value, String path, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPEMCertificate(path, value);
+
+        File filePem = new File("target/test-classes/" + value + ".pem");
+        Assertions.assertThat(filePem.length()).isGreaterThan(1);
+    }
+
+    /**
+     * Get KEY from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.key
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in KEY format( in /people)?$")
+    public void getKeyCertificate(String value, String path, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getKEYCertificate(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".key");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(1);
+    }
+
+    /**
+     * Get CA Bundle from cluster. The ouput file is:
+     *
+     *    target/test-classes/ca.crt
+     *
+     * @throws Exception
+     */
+    @Given("^I get CA Bundle using deploy-api$")
+    public void getCA() throws Exception {
+        cctUtils.getCABundle(false);
+
+        File fileCABundle = new File("target/test-classes/ca.crt");
+        Assertions.assertThat(fileCABundle.length()).isGreaterThan(1);
+        try (FileInputStream fileCABundleInputStream = new FileInputStream("target/test-classes/ca.crt")) {
+            String fileCABundleContent = IOUtils.toString(fileCABundleInputStream);
+            Assertions.assertThat(fileCABundleContent).isNotEqualToIgnoringCase("null\n");
+        }
+    }
+
+    /**
+     * Get P12 from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.p12
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param envVar environment variable to save the P12 password
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in P12 format and save the password in environment variable '(.+?)'( in /people)?$")
+    public void getP12Certificate(String value, String path, String envVar, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPKCS12Certificate(path, value, envVar);
+
+        File fileP12 = new File("target/test-classes/" + value + ".p12");
+        Assertions.assertThat(fileP12).exists();
+    }
+
+    /**
+     * Get JKS from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.jks
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param envVar environment variable to save the P12 password
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in JKS and save the password in environment variable '(.+?)'( in /people)?$")
+    public void getJKSCertificate(String value, String path, String envVar, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getKeystore(path, value, envVar);
+
+        File fileJKS = new File("target/test-classes/" + value + ".jks");
+        Assertions.assertThat(fileJKS).exists();
+    }
+
+    /**
+     * Get PK8 from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.pk8
+     *
+     * @param value specific certificate's entry
+     * @param path certificate's path in Vault
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get certificate '(.+?)' using deploy-api from path '(.+?)' in PK8 format( in /people)?$")
+    public void getPK8Certificate(String value, String path, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPKCS8Certificate(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".pk8");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(0);
+    }
+
+    /**
+     * Get Truststore with the cluster CA Bundle. The ouput file is:
+     *
+     *    target/test-classes/truststore.jks
+     *
+     * @throws Exception
+     */
+    @Given("^I get Truststore containing CA Bundle using deploy-api and save the password in environment variable '(.+?)'$")
+    public void getTruststoreWithCABundle(String envVar) throws Exception {
+        cctUtils.getTruststoreCABundle(envVar);
+
+        File fileTruststore = new File("target/test-classes/truststore.jks");
+        Assertions.assertThat(fileTruststore).exists();
+    }
+
+    /**
+     * Get Keytab from specified certificate. The ouput file is:
+     *
+     *    target/test-classes/<value>.keytab
+     *
+     * @param value specific keytab's entry
+     * @param path Keytab's path in Vault
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get keytab '(.+?)' using deploy-api from path '(.+?)'( in /people)?$")
+    public void getKeytab(String value, String path, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getKeytabKrb(path, value);
+
+        File fileKey = new File("target/test-classes/" + value + ".keytab");
+        Assertions.assertThat(fileKey.length()).isGreaterThan(0);
+    }
+
+    /**
+     * Get 'principal' from specified Keytab. The ouput is the 'principal' saved in environmental variable.
+     *
+     * @param value specific principal's entry
+     * @param path Keytab's path in Vault
+     * @param envVar environment variable to save the principal
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get principal '(.+?)' using deploy-api from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
+    public void getPrincipal(String value, String path, String envVar, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPrincipalKrb(path, value, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
+    }
+
+    /**
+     * Get 'pass' from specified password. The ouput is the 'pass' saved in environmental variable.
+     *
+     * @param path Password's path in Vault
+     * @param envVar environment variable to save the password
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get password using deploy-api from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
+    public void getPwd(String path, String envVar, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getPass(path, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
+    }
+
+    /**
+     * Get 'user' from specified password. The ouput is the 'user' saved in environmental variable.
+     *
+     * @param path Password's path in Vault
+     * @param envVar environment variable to save the user
+     * @param inPeople [optional] look into /people in Vault (/userland by default)
+     * @throws Exception
+     */
+    @Given("^I get user using deploy-api from path '(.+?)' and save it in environment variable '(.+?)'( in /people)?$")
+    public void getUsr(String path, String envVar, String inPeople) throws Exception {
+        cctUtils.setSecretsBasePath(inPeople != null);
+        cctUtils.getUser(path, envVar);
+
+        Assertions.assertThat(ThreadProperty.get(envVar)).isNotEmpty();
     }
 
 }
