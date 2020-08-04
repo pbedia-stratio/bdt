@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.19.0 (upcoming)
+
+* Pending changelog
+
 ## 0.18.0 (upcoming)
 
 * [ROCK-1999] Add clients, models and Marathon spec
