@@ -21,12 +21,14 @@ import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import io.cucumber.datatable.DataTable;
+import org.apache.commons.lang.time.DateUtils;
 import org.assertj.core.api.Assertions;
-import org.assertj.core.api.Fail;
 import org.hjson.JsonArray;
 import org.hjson.JsonValue;
 
 import java.lang.reflect.InvocationTargetException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -355,4 +357,63 @@ public class MiscSpec extends BaseGSpec {
             }
         }
     }
+
+    /**
+     * Convert provided date into timestamp
+     *
+     * @param date     : provided date (2020-08-08, 2020-08-08 10:10:10, etc)
+     * @param format   : provided format (yyyy-MM-dd, yyyy-MM-dd HH:mm:ss, etc) - Format should match with provided date/time
+     * @param timezone : Timezone GMT,GMT+1,GMT-1... (OPTIONAL) if not provided, UTC (GMT)
+     * @param envVar   : environment variable where timestamp is saved
+     * @throws Exception
+     */
+    @When("^I convert date '(.+?)' in format '(.+?)'( with timezone '(.+?)')? into timestamp and save the value in environment variable '(.+?)'$")
+    public void convertDateToTimestamp(String date, String format, String timezone, String envVar) throws Exception {
+
+        SimpleDateFormat isoFormat = new SimpleDateFormat(format);
+        if (timezone != null) {
+            isoFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        } else {
+            isoFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        }
+        try {
+            Date d = isoFormat.parse(date);
+            GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("Europe/Madrid"));
+            calendar.setTime(d);
+            ThreadProperty.set(envVar, Long.toString(calendar.getTimeInMillis()));
+            commonspec.getLogger().debug("Your date in timestamp: {} with timezone: {}", calendar.getTimeInMillis(), timezone);
+        } catch (AssertionError e) {
+            commonspec.getLogger().error("Error converting date {}, check date and format", date);
+            throw e;
+        }
+    }
+
+    /**
+     * Get current date and time and save into environment variable
+     *
+     * @param envVar : environment variable where date time is saved
+     */
+    @Given("^I get current date and time and save the value in environment variable '(.+?)'$")
+    public void getCurrentDateTime(String envVar) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date(); //now
+        ThreadProperty.set(envVar, dateFormat.format(date));
+        commonspec.getLogger().debug("Current Date: {}", dateFormat.format(date));
+    }
+
+    /**
+     * Get current date and time plus provided minutes and save into environment variable
+     *
+     * @param envVar        : environment variable where date time is saved
+     * @param addMinuteTime : added minutes
+     */
+    @Given("^I get date and time with '(.+?)' more minutes from now and save the value in environment variable '(.+?)'$")
+    public void getOneMoreMinute(int addMinuteTime, String envVar) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date targetTime = new Date(); //now
+        targetTime = DateUtils.addMinutes(targetTime, addMinuteTime); //add minute
+        ThreadProperty.set(envVar, dateFormat.format(targetTime));
+        commonspec.getLogger().debug("Date adding {} minutes : {}", addMinuteTime, dateFormat.format(targetTime));
+    }
+
 }
