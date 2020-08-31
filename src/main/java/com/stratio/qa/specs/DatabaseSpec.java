@@ -686,8 +686,8 @@ public class DatabaseSpec extends BaseGSpec {
      * @param query
      * executes query in database
      */
-    @When("^I execute query '(.+?)' through JDBC connection$")
-    public void executeJdbcQuery(String query) throws Exception {
+    @When("^I execute query '(.+?)' through JDBC connection(, returning an exception)?( with message \"(.+?)\")?$")
+    public void executeJdbcQuery(String query, String exceptionReturned, String exceptionMessageExpected) throws Exception {
         Connection myConnection = this.commonspec.getConnection();
         if (myConnection == null) {
             throw new Exception("JDBC connection is not opened");
@@ -699,7 +699,14 @@ public class DatabaseSpec extends BaseGSpec {
             myStatement.execute(query);
             myStatement.close();
         } catch (Exception e) {
-            fail("Error executing query -> " + e.getMessage());
+            if (exceptionReturned == null) {
+                fail("Error executing query -> " + e.getMessage());
+            } else {
+                getCommonSpec().getLogger().warn("Error executing query -> " + e.getMessage());
+                if (exceptionMessageExpected != null) {
+                    Assertions.assertThat(e.getMessage()).as("Query error message").contains(exceptionMessageExpected);
+                }
+            }
         }
     }
 
