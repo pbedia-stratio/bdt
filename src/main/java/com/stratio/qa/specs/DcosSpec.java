@@ -168,6 +168,30 @@ public class DcosSpec extends BaseGSpec {
     }
 
     /**
+     * Generate token to authenticate in gosec SSO with Discovery
+     *
+     * @param ssoHost  : current sso host
+     * @param userName : username
+     * @param passWord : password
+     * @param discoveryCookie : Cookie for discovery
+     * @throws Exception exception
+     */
+    @Given("I set sso discovery token using host '(.+?)' with user '(.+?)' and password '(.+?)'( and tenant '(.+?)')?( without host name verification)? with cookie name '(.+?)'$")
+    public void setGoSecSSOCookieforDiscovery(String ssoHost, String userName, String passWord, String tenant, String hostVerifier, String discoveryCookie) throws Exception {
+        GosecSSOUtils ssoUtils = new GosecSSOUtils(ssoHost, userName, passWord, tenant, null);
+        ssoUtils.setVerifyHost(hostVerifier == null);
+        HashMap<String, String> ssoCookies = ssoUtils.ssoTokenGenerator();
+        String[] tokenList = new String[]{discoveryCookie};
+        List<com.ning.http.client.cookie.Cookie> cookiesAtributes = addSsoToken(ssoCookies, tokenList);
+        this.commonspec.getLogger().debug("Discovery Cookie to set:");
+        for (String cookie : tokenList) {
+            this.commonspec.getLogger().debug("\t" + cookie + ":" + ssoCookies.get(cookie));
+        }
+        ThreadProperty.set(discoveryCookie, ssoCookies.get(discoveryCookie));
+        commonspec.setCookies(cookiesAtributes);
+    }
+
+    /**
      * Obtain cookies from previous request
      * @param ssoCookies
      * @param tokenList
@@ -408,16 +432,15 @@ public class DcosSpec extends BaseGSpec {
      */
     @Then("^I obtain metabase id for user '(.+?)' and password '(.+?)' in endpoint '(.+?)' and save in context cookies$")
     public void saveMetabaseCookie(String user, String password, String url) throws Exception {
-        String command = "curl -X POST -k -H \"Content-Type: application/json\" -d '{\"username\": \"" + user + "\", \"password\": \"" + password + "\"}' " + url;
+        String command = "curl -X POST -k -H 'Cookie: " + this.commonspec.getCookies().get(0) + " ' -H \"Content-Type: application/json\" -d '{\"username\": \"" + user + "\", \"password\": \"" + password + "\"}' " + url;
         commonspec.runLocalCommand(command);
         commonspec.runCommandLoggerAndEnvVar(0, null, Boolean.TRUE);
-
         Assertions.assertThat(commonspec.getCommandExitStatus()).isEqualTo(0);
         String result = JsonPath.parse(commonspec.getCommandResult().trim()).read("$.id");
-
         com.ning.http.client.cookie.Cookie cookie = new com.ning.http.client.cookie.Cookie("metabase.SESSION_ID", result, false, "", "", 99999L, false, false);
         ArrayList cookieList = new ArrayList();
         cookieList.add(cookie);
+        cookieList.add(this.commonspec.getCookies().get(0));
         this.commonspec.setCookies(cookieList);
     }
 
