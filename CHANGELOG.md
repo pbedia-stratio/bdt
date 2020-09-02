@@ -11,6 +11,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [DGPB-4527] Catch exception in JDBC queries
 * [ROCK-2116] Handle Discovery Token
 * [QATM-3473] New step to obtain service/container port through Marathon API
+* [QATM-3473] Fix cookies in BaseClient
 
 ## 0.18.0 (August 04, 2020)
 

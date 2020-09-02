@@ -36,18 +36,18 @@ public class BaseClient {
 
     protected AsyncHttpClient httpClient;
 
-    protected List<Cookie> cookies;
-
     protected Logger log;
 
     protected ObjectMapper mapper = new ObjectMapper();
 
     private String port = "443";
 
+    private CommonG commonG;
+
     protected BaseClient(CommonG common) {
 
         this.httpClient = common.getClient();
-        this.cookies = common.getCookies();
+        this.commonG = common;
         this.log = common.getLogger();
     }
 
@@ -102,7 +102,7 @@ public class BaseClient {
 
     protected Response get(String endpoint) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.prepareGet(endpoint);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         Response response = request.execute().get();
         this.log.debug("GET to " + response.getUri() + ":" + response.getResponseBody());
         return response;
@@ -110,7 +110,7 @@ public class BaseClient {
 
     protected Response get(String endpoint, Map<String, String> queryParams) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.prepareGet(endpoint);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         List<Param> params = queryParams.entrySet().stream()
                 .map(queryParam -> new Param(queryParam.getKey(), queryParam.getValue())).collect(Collectors.toList());
         request = request.setQueryParams(params);
@@ -121,7 +121,7 @@ public class BaseClient {
 
     protected Response delete(String endpoint) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.prepareDelete(endpoint);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         Response response = request.execute().get();
         this.log.debug("DELETE to " + response.getUri() + ":" + response.getResponseBody());
         return response;
@@ -129,7 +129,7 @@ public class BaseClient {
 
     protected Response put(String endpoint) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.preparePut(endpoint);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         Response response = request.execute().get();
         this.log.debug("PUT to " + response.getUri() + ":" + response.getResponseBody());
         return response;
@@ -138,7 +138,7 @@ public class BaseClient {
     protected Response post(String endpoint, String data) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.preparePost(endpoint);
         request = request.setBody(data);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         Response response = request.execute().get();
         this.log.debug("PUT to " + response.getUri() + ":" + response.getResponseBody());
         return response;
@@ -147,7 +147,7 @@ public class BaseClient {
     protected Response put(String endpoint, String data) throws Exception {
         AsyncHttpClient.BoundRequestBuilder request = this.httpClient.preparePut(endpoint);
         request = request.setBody(data);
-        request = request.setCookies(cookies);
+        request = request.setCookies(commonG.getCookies());
         Response response = request.execute().get();
         this.log.debug("PUT to " + response.getUri() + ":" + response.getResponseBody());
         return response;
