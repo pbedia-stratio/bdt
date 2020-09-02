@@ -17,9 +17,7 @@
 package com.stratio.qa.specs;
 
 import com.stratio.qa.clients.marathon.MarathonApiClient;
-import com.stratio.qa.models.marathon.AppResponse;
-import com.stratio.qa.models.marathon.MarathonConstants;
-import com.stratio.qa.models.marathon.Task;
+import com.stratio.qa.models.marathon.*;
 import com.stratio.qa.utils.ThreadProperty;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +27,7 @@ import cucumber.api.java.en.When;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 public class MarathonSpec extends BaseGSpec {
@@ -232,5 +231,18 @@ public class MarathonSpec extends BaseGSpec {
     public void getTaskId(String taskName, String serviceId, String envVar) throws Exception {
         String taskId = MarathonApiClient.utils.getTaskId(taskName, serviceId);
         ThreadProperty.set(envVar, taskId);
+    }
+
+    @Then("^I get (service|container) port in position '(.*)' for service with id '(.*)' and save the value in environment variable '(.+?)'$")
+    public void getServicePort(String serviceOrContainer, String position, String serviceId, String envVar) throws Exception {
+        AppResponse app = marathonApiClient.getApp(serviceId);
+        Port portAux = new ArrayList<>(app.getApp().getContainer().getPortMappings()).get(Integer.parseInt(position));
+        switch (serviceOrContainer) {
+            case "service":     ThreadProperty.set(envVar, String.valueOf(portAux.getServicePort()));
+                                break;
+            case "container":   ThreadProperty.set(envVar, String.valueOf(portAux.getContainerPort()));
+                                break;
+            default:        throw new Exception("First param must be service or container");
+        }
     }
 }

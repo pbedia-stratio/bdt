@@ -9,6 +9,8 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [SPK-914] Complete new getHostIP method
 * [QATM-3470] JDBC improvements. JDBC connection can be used in the following scenarios
 * [DGPB-4527] Catch exception in JDBC queries
+* [ROCK-2116] Handle Discovery Token
+* [QATM-3473] New step to obtain service/container port through Marathon API
 
 ## 0.18.0 (August 04, 2020)
 
