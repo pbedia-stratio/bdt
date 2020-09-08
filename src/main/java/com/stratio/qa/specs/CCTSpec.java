@@ -23,9 +23,8 @@ import com.stratio.qa.clients.cct.DeployApiClient;
 import com.stratio.qa.clients.mesos.MesosApiClient;
 import com.stratio.qa.models.cct.deployApi.DeployedApp;
 import com.stratio.qa.models.cct.deployApi.DeployedTask;
-import com.stratio.qa.models.cct.marathonServiceApi.DeployedService;
-import com.stratio.qa.models.cct.marathonServiceApi.DeployedServiceTask;
-import com.stratio.qa.models.cct.marathonServiceApi.TaskStatus;
+import com.stratio.qa.models.cct.deployApi.SandboxItem;
+import com.stratio.qa.models.cct.marathonServiceApi.*;
 import com.stratio.qa.models.mesos.MesosTask;
 import com.stratio.qa.utils.CCTUtils;
 import com.stratio.qa.utils.ThreadProperty;
@@ -38,6 +37,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -101,15 +101,11 @@ public class CCTSpec extends BaseGSpec {
         commonspec.setCCTConnection(null, null);
         if (ThreadProperty.get("cct-marathon-services_id") == null) {
             DeployedTask task = getServiceTaskFromDeployApi(serviceId, taskName);
-            if (task == null) {
-                fail("Error obtaining IP");
-            }
+            Assert.assertNotNull(task, "Error obtaining IP");
             ThreadProperty.set(envVar, internalIP != null ? task.getCalicoIP() : task.getHost());
         } else {
             DeployedServiceTask task = getServiceTaskFromCctMarathonService(serviceId, taskName);
-            if (task == null) {
-                fail("Error obtaining IP");
-            }
+            Assert.assertNotNull(task, "Error obtaining IP");
             ThreadProperty.set(envVar, internalIP != null ? task.getSecuredHost() : task.getHost());
         }
     }
@@ -121,17 +117,17 @@ public class CCTSpec extends BaseGSpec {
     private DeployedTask getServiceTaskFromDeployApi(String serviceId, String taskName) throws Exception {
         DeployedApp app = deployApiClient.getDeployedApp(serviceId);
         return app.getTasks().stream()
-                        .filter(task -> task.getState().equals(MesosTask.Status.TASK_RUNNING.toString()))
-                        .filter(task -> task.getName().matches(taskName))
-                        .findFirst().orElse(null);
+                .filter(task -> task.getState().equals(MesosTask.Status.TASK_RUNNING.toString()))
+                .filter(task -> task.getName().matches(taskName))
+                .findFirst().orElse(null);
     }
 
     private DeployedServiceTask getServiceTaskFromCctMarathonService(String serviceId, String taskName) throws Exception {
         DeployedService service = marathonServiceApiClient.getService(serviceId);
         return service.getTasks().stream()
-                        .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
-                        .filter(task -> task.getName().matches(taskName))
-                        .findFirst().orElse(null);
+                .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
+                .filter(task -> task.getName().matches(taskName))
+                .findFirst().orElse(null);
     }
 
     @When("^I get container name for task '(.+?)' in service with id '(.+?)' and save the value in environment variable '(.+?)'$")
@@ -155,206 +151,211 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     * Read last lines from logs of a service/framework
-     * @param timeout       : maximun waiting time
-     * @param wait          : check interval
-     * @param logType       : type of log enum value)
-     * @param service       : service to obtain log from
-     * @param taskType      : task from service (OPTIONAL)
-     * @param logToCheck    : expression to look for
+     * Download last lines from logs of a service/framework
+     *
+     * @param logType      : type of log enum value)
+     * @param service      : service to obtain log from
+     * @param taskNameOrID : task from service
      * @throws Exception
      */
-    @Given("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, the '(stdout|stderr)' of service '(.+?)'( with task type '(.+?)')? contains '(.+?)'$")
-    public void readLogsInLessEachFromService(Integer timeout, Integer wait, String logType, String service, String taskType, String logToCheck) throws Exception {
-        commonspec.getLogger().debug("Start process of read from the mesos log");
+    @Given("^I want to download '(stdout|stderr)' last '(\\d+)' lines of service '(.+?)' with task (name|ID) '(.+?)'( in position '(\\d+)')?( in any state)?")
+    public void downLoadLogsFromService(String logType, Integer lastLinesToRead, String service, String nameOrId, String taskNameOrID, Integer position, String taskState) throws Exception {
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+        position = (position == null) ? 0 : position;
+        String fileOutputName = position == 0 ? taskNameOrID + "." + logType : taskNameOrID + "." + logType + "." + position;
+        String logOfTask = getLog(logType, lastLinesToRead, service, taskNameOrID, position, taskState, nameOrId.equals("ID"));
+        Assert.assertNotNull(logOfTask, "Error downloading log file");
+        Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/" + fileOutputName), logOfTask.getBytes());
+    }
 
-        String endPoint;
-        if (ThreadProperty.get("cct-marathon-services_id") == null) {
-            endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + " /deployments/service?instanceName=" + service;
-        } else {
-            endPoint = "/service/cct-marathon-services/v1/services/" + service;
+    /**
+     * Read last lines from logs of a service/framework
+     *
+     * @param logType         : type of log enum value)
+     * @param service         : service to obtain log from
+     * @param taskNameOrID    : task from service
+     * @param logToCheck      : expression to look for
+     * @param lastLinesToRead : number of lines to check from the end
+     * @throws Exception
+     */
+    @Given("^The '(stdout|stderr)' of service '(.+?)' with task (name|ID) '(.+?)' contains '(.+?)' in the last '(\\d+)' lines$")
+    public void readLogsFromService(String logType, String service, String nameOrId, String taskNameOrID, String logToCheck, Integer lastLinesToRead) throws Exception {
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+        String logOfTask = getLog(logType, lastLinesToRead, service, taskNameOrID, 0, null, nameOrId.equals("ID"));
+        Assert.assertNotNull(logOfTask, "Error downloading log file");
+        if (!logOfTask.contains(logToCheck)) {
+            Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/log.txt"), logOfTask.getBytes());
+            fail("The log '" + logToCheck + "' is not contained in the task logs. It is saved in target/test-classes/log.txt");
         }
-        Future<Response> response = null;
-        commonspec.getLogger().debug("Trying to send http request to: " + endPoint);
-        response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
-        if (response.get().getStatusCode() != 200) {
-            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
-        }
-        commonspec.setResponse(endPoint, response.get());
-        ArrayList<String> mesosTaskId = obtainMesosTaskInfo(commonspec.getResponse().getResponse(), taskType, "id");
-        commonspec.getLogger().info("Mesos Task Ids obtained successfully");
-        commonspec.getLogger().debug("Mesos task ids: "  + Arrays.toString(mesosTaskId.toArray()));
-        boolean contained = false;
-        int actualoffset = 0;
-        int lastoffset = 0;
-        for (int x = 0; (x <= timeout) && (!contained); x += wait) {
-            for (int i = 0; i < mesosTaskId.size() && !contained; i++) {
-                String endpointTask;
-                if (ThreadProperty.get("cct-marathon-services_id") == null) {
-                    endpointTask = "/service/" + ThreadProperty.get("deploy_api_id") + "/deployments/logs/" + taskType;
-                } else {
-                    endpointTask = "/service/cct-marathon-services/v1/services/tasks/" + taskType + "/logs";
-                }
-                commonspec.getLogger().debug("Trying to send http request to: " + endpointTask);
-                response = commonspec.generateRequest("GET", false, null, null, endpointTask, "", null);
-                if (response.get().getStatusCode() != 200) {
-                    throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
-                }
-                commonspec.setResponse("GET", response.get());
-                commonspec.getLogger().debug("Trying to obtain mesos logs path");
-                String path = obtainLogsPath(commonspec.getResponse().getResponse(), logType, "READ") + "/" + logType;
-                commonspec.getLogger().debug("Trying to read mesos logs");
-                response = commonspec.generateRequest("GET", false, null, null, path, "", null);
-                if (response.get().getStatusCode() != 200) {
-                    throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
-                }
-                JSONObject offSetJson = new JSONObject(response.get().getResponseBody());
-                actualoffset = offSetJson.getInt("offset");
-                endPoint = path + "&offset=" + lastoffset + "&length=" + actualoffset;
-                response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
-                if (response.get().getStatusCode() != 200) {
-                    throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
-                }
-                commonspec.setResponse("GET", response.get());
-                JSONObject cctJsonResponse = new JSONObject(commonspec.getResponse().getResponse());
-                String logs = "";
-                logs = cctJsonResponse.getString("data");
-                lastoffset = actualoffset;
-                if (logs.contains(logToCheck)) {
-                    contained = true;
-                }
+    }
+
+    /**
+     * Read last lines from logs of a service/framework
+     *
+     * @param timeout      : maximun waiting time
+     * @param wait         : check interval
+     * @param logType      : type of log enum value)
+     * @param service      : service to obtain log from
+     * @param taskNameOrID : task from service
+     * @param logToCheck   : expression to look for
+     * @throws Exception
+     */
+    @Given("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, the '(stdout|stderr)' of service '(.+?)' with task (name|ID) '(.+?)' contains '(.+?)'( in the last '(\\d+)' lines)?$")
+    public void readLogsInLessEachFromService(Integer timeout, Integer wait, String logType, String service, String nameOrId, String taskNameOrID, String logToCheck, Integer lastLinesToRead) throws Exception {
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+        lastLinesToRead = lastLinesToRead == null ? -1 : lastLinesToRead;
+        String logOfTask = null;
+        for (int x = 0; x <= timeout; x += wait) {
+            logOfTask = getLog(logType, lastLinesToRead, service, taskNameOrID, 0, null, nameOrId.equals("ID"));
+            if (logOfTask != null && logOfTask.contains(logToCheck)) {
+                break;
             }
+            commonspec.getLogger().info(logToCheck + " not found after " + x + " seconds");
             if (x < timeout) {
                 Thread.sleep(wait * 1000);
             }
         }
-        if (!contained) {
-            fail("The log " + logToCheck + " is not contaided in the task logs");
+        Assert.assertNotNull(logOfTask, "Error downloading log file");
+        if (!logOfTask.contains(logToCheck)) {
+            Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/log.txt"), logOfTask.getBytes());
+            fail("The log '" + logToCheck + "' is not contained in the task logs after " + timeout + " seconds. Last log downloaded is saved in target/test-classes/log.txt");
         }
     }
 
     /**
-     * Download last lines from logs of a service/framework
-     * @param logType       : type of log enum value)
-     * @param service       : service to obtain log from
-     * @param taskType      : task from service (OPTIONAL)
+     * Read last lines from logs of a service/framework
+     *
+     * @param timeout      : maximun waiting time
+     * @param wait         : check interval
+     * @param logType      : type of log enum value)
+     * @param service      : service to obtain log from
+     * @param taskNameOrID : task from service
+     * @param logToCheck   : expression to look for
      * @throws Exception
      */
-    @Given("^I want to download '(stdout|stderr)' last '(\\d+)' lines of service '(.+?)'( with task type '(.+?)')?")
-    public void downLoadLogsFromService(String logType, Integer lastLinesToRead, String service, String taskType) throws Exception {
+    @Given("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, last '(\\d+)' lines of '(stdout|stderr)' log of service '(.+?)' with task (name|ID) '(.+?)', modifying it with command '(.+?)' contains '(.+?)'$")
+    public void readLogsModifiedInLessEachFromService(Integer timeout, Integer wait, Integer lastLinesToRead, String logType, String service, String nameOrId, String taskNameOrID, String modifyingCommand, String logToCheck) throws Exception {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
-
-        String fileOutputName = service.replace('/', '_') + taskType + logType;
-        String endPoint;
-        if (ThreadProperty.get("cct-marathon-services_id") == null) {
-            endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + " /deployments/service?instanceName=" + service;
-        } else {
-            endPoint = "/service/cct-marathon-services/v1/services/" + service;
-        }
-        Future<Response> response = null;
-        commonspec.getLogger().debug("Trying to send http request to: " + endPoint);
-        response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
-        if (response.get().getStatusCode() != 200) {
-            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
-        }
-        commonspec.setResponse(endPoint, response.get());
-        ArrayList<String> mesosTaskId = obtainMesosTaskInfo(commonspec.getResponse().getResponse(), null, "id");
-        ArrayList<String> mesosTaskName = obtainMesosTaskInfo(commonspec.getResponse().getResponse(), null, "name");
-        boolean contained = false;
-        if (mesosTaskId.size() > 1) {
-            for (int i = 0; i < mesosTaskName.size() && !contained; i++) {
-                if (mesosTaskName.get(i).contains(taskType)) {
-                    contained = true;
-                    taskType = mesosTaskId.get(i);
+        String logOfTask = null;
+        for (int x = 0; x <= timeout; x += wait) {
+            logOfTask = getLog(logType, lastLinesToRead, service, taskNameOrID, 0, null, nameOrId.equals("ID"));
+            if (logOfTask != null) {
+                Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/log.txt"), logOfTask.getBytes());
+                commonspec.runLocalCommand("cat target/test-classes/log.txt | " + modifyingCommand);
+                commonspec.getLogger().debug("Log result modified =  " + commonspec.getCommandResult());
+                if (commonspec.getCommandResult().contains(logToCheck)) {
+                    break;
                 }
             }
-        } else {
-            contained = true;
-            taskType = mesosTaskId.get(0);
+            commonspec.getLogger().info(logToCheck + " not found after " + x + " seconds");
+            if (x < timeout) {
+                Thread.sleep(wait * 1000);
+            }
         }
-        if (!contained) {
-            fail("The mesos task type does not exists");
+        Assert.assertNotNull(logOfTask, "Error downloading log file");
+        if (!commonspec.getCommandResult().contains(logToCheck)) {
+            Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/log.txt"), logOfTask.getBytes());
+            commonspec.getLogger().error("Last log result modified =  " + commonspec.getCommandResult());
+            fail("The log '" + logToCheck + "' is not contained in the task logs after " + timeout + " seconds. Last log downloaded is saved in target/test-classes/log.txt");
         }
-
-        String endpointTask;
-        if (ThreadProperty.get("cct-marathon-services_id") == null) {
-            endpointTask = "/service/" + ThreadProperty.get("deploy_api_id") + "/deployments/logs/" + taskType;
-        } else {
-            endpointTask = "/service/cct-marathon-services/v1/services/tasks/" + taskType + "/logs";
-        }
-        commonspec.getLogger().debug("Trying to send http request to: " + endpointTask);
-        response = commonspec.generateRequest("GET", false, null, null, endpointTask, "", null);
-        if (response.get().getStatusCode() != 200) {
-            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
-        }
-        commonspec.setResponse("GET", response.get());
-        commonspec.getLogger().debug("Trying to obtain mesos logs path");
-        String path = obtainLogsPath(commonspec.getResponse().getResponse(), logType, "READ") + "/" +  logType;
-        String logOfTask = readLogsFromMesos(path, lastLinesToRead);
-        Files.write(Paths.get(System.getProperty("user.dir") + "/target/test-classes/" + fileOutputName), logOfTask.getBytes());
     }
 
-     /**
-      * Read last lines from logs of a service/framework
-      * @param logType          : type of log enum value)
-      * @param service          : service to obtain log from
-      * @param taskType         : task from service (OPTIONAL)
-      * @param logToCheck       : expression to look for
-      * @param lastLinesToRead  : number of lines to check from the end
-      * @throws Exception
+    /**
+     * Obtain last lines of log
+     *
+     * @param logType         stdout / stderr
+     * @param lastLinesToRead Last lines to read in log
+     * @param service         Service ID
+     * @param taskNameOrID    Task name
+     * @return Last 'lastLinesToRead' or null
+     * @throws Exception
      */
-    @Given("^The '(stdout|stderr)' of service '(.+?)'( with task type '(.+?)')? contains '(.+?)' in the last '(\\d+)' lines$")
-    public void readLogsFromService(String logType, String service, String taskType, String logToCheck, Integer lastLinesToRead) throws Exception {
-        // Set REST connection
-        commonspec.setCCTConnection(null, null);
-
-        commonspec.getLogger().debug("Start process of read " + lastLinesToRead + " from the mesos log");
-        String endPoint;
+    private String getLog(String logType, Integer lastLinesToRead, String service, String taskNameOrID, Integer position, String taskState, boolean isTaskId) throws Exception {
+        String logPath;
         if (ThreadProperty.get("cct-marathon-services_id") == null) {
-            endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + " /deployments/service?instanceName=" + service;
+            // Deploy-api
+            String expectedTaskStatus = taskState == null && !isTaskId ? "TASK_RUNNING" : null;
+            logPath = getLogPathFromDeployApi(logType, service, taskNameOrID, expectedTaskStatus, position, isTaskId);
         } else {
-            endPoint = "/service/cct-marathon-services/v1/services/" + service;
+            // Marathon-services
+            TaskStatus expectedTaskStatus = taskState == null && !isTaskId ? TaskStatus.RUNNING : null;
+            logPath = getLogPathFromMarathonServices(logType, service, taskNameOrID, expectedTaskStatus, position, isTaskId);
         }
-        Future<Response> response = null;
-        commonspec.getLogger().debug("Trying to send http request to: " + endPoint);
-        response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
-        if (response.get().getStatusCode() != 200) {
-            throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
+        if (logPath == null) {
+            return null;
         }
-        commonspec.setResponse(endPoint, response.get());
-        ArrayList<String> mesosTaskId = obtainMesosTaskInfo(commonspec.getResponse().getResponse(), taskType, "id");
-        commonspec.getLogger().info("Mesos Task Ids obtained successfully");
-        commonspec.getLogger().debug("Mesos task ids: "  + Arrays.toString(mesosTaskId.toArray()));
-        boolean contained = false;
-        for (int i = 0; i < mesosTaskId.size() && !contained; i++) {
-            String endpointTask;
-            if (ThreadProperty.get("cct-marathon-services_id") == null) {
-                endpointTask = "/service/" + ThreadProperty.get("deploy_api_id") + "/deployments/logs/" + taskType;
-            } else {
-                endpointTask = "/service/cct-marathon-services/v1/services/tasks/" + taskType + "/logs";
+        commonspec.getLogger().debug("Log path: " + logPath);
+        return readLogsFromMesos(logPath, lastLinesToRead);
+    }
+
+    /**
+     * Obtain log path through deploy-api service
+     *
+     * @param logType      stdout / stderr
+     * @param service      Service ID
+     * @param taskNameOrId Task name
+     * @return Log path or null
+     * @throws Exception
+     */
+    private String getLogPathFromDeployApi(String logType, String service, String taskNameOrId, String expectedTaskStatus, Integer position, boolean isTaskId) throws Exception {
+        DeployedTask deployedTask = deployApiClient.getDeployedApp(service).getTasks().stream()
+                .filter(expectedTaskStatus != null ? task -> task.getState().equals(expectedTaskStatus) : task -> true)
+                .filter(task -> isTaskId ? task.getId().matches(taskNameOrId) : task.getName().matches(taskNameOrId))
+                .sorted(Comparator.comparing(DeployedTask::getTimestamp).reversed())
+                .skip(position)
+                .findFirst().orElse(null);
+        if (deployedTask != null) {
+            SandboxItem sandboxItem = deployApiClient.getLogPaths(deployedTask.getId()).getList().stream()
+                    .filter(log -> log.getAction().equals("read"))
+                    .findFirst().orElse(null);
+            if (sandboxItem != null && sandboxItem.getPath() != null) {
+                return sandboxItem.getPath() + logType;
             }
-            commonspec.getLogger().debug("Trying to send http request to: " + endpointTask);
-            response = commonspec.generateRequest("GET", false, null, null, endpointTask, "", null);
-            if (response.get().getStatusCode() != 200) {
-                throw new Exception("Request failed to endpoint: " + endPoint + " with status code: " + commonspec.getResponse().getStatusCode());
-            }
-            commonspec.setResponse("GET", response.get());
-            commonspec.getLogger().debug("Trying to obtain mesos logs path");
-            String path = obtainLogsPath(commonspec.getResponse().getResponse(), logType, "READ") + "/" +  logType;
-            commonspec.getLogger().debug("Trying to read mesos logs");
-            String logOfTask = readLogsFromMesos(path, lastLinesToRead);
-            if (logOfTask.contains(logToCheck)) {
-                contained = true;
-            }
+            commonspec.getLogger().warn("Log path not found for task with name " + taskNameOrId + " and service " + service);
+        } else {
+            commonspec.getLogger().warn("No task found with name " + taskNameOrId + " for service " + service);
         }
-        if (!contained) {
-            fail("The log " + logToCheck + " is not contaided in the task logs");
+        return null;
+    }
+
+    /**
+     * Obtain log path through marathon-services service
+     *
+     * @param logType      stdout / stderr
+     * @param service      Service ID
+     * @param taskNameOrId Task name
+     * @return Log path or null
+     * @throws Exception
+     */
+    private String getLogPathFromMarathonServices(String logType, String service, String taskNameOrId, TaskStatus expectedTaskStatus, Integer position, boolean isTaskId) throws Exception {
+        DeployedServiceTask deployedServiceTask = marathonServiceApiClient.getService(service, 1, 50).getTasks().stream()
+                .filter(expectedTaskStatus != null ? task -> task.getStatus().equals(expectedTaskStatus) : task -> true)
+                .filter(task -> isTaskId ? task.getId().matches(taskNameOrId) : task.getName().matches(taskNameOrId))
+                .sorted(Comparator.comparing(DeployedServiceTask::getTimestamp).reversed())
+                .skip(position)
+                .findFirst().orElse(null);
+        if (deployedServiceTask != null) {
+            TaskLog taskLog = marathonServiceApiClient.getLogPaths(deployedServiceTask.getId()).getContent().stream()
+                    .filter(log -> log.getAction() == LogAction.READ)
+                    .filter(log -> log.getName().equals(logType))
+                    .findFirst().orElse(null);
+            if (taskLog != null && taskLog.getPath() != null) {
+                return taskLog.getPath() + logType;
+            }
+            commonspec.getLogger().warn("Log path not found for task with name " + taskNameOrId + " and service " + service);
+        } else {
+            commonspec.getLogger().warn("No task found with name " + taskNameOrId + " for service " + service);
         }
+        return null;
     }
 
     /**
      * Read log from mesos
+     *
      * @param path      : path of service to obtain logs from
      * @param lastLines : number of lines to read from the end
      * @return lines read
@@ -371,77 +372,46 @@ public class CCTSpec extends BaseGSpec {
             throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
         }
         JSONObject offSetJson = new JSONObject(response.get().getResponseBody());
-
-        Integer offSet = offSetJson.getInt("offset");
-        //Read 1000 bytes
-        String logs = "";
-        Integer lineCount = 0;
-        for (int i = offSet; (i >= 0) && (lineCount <= lastLines); i = i - 1000) {
-            String endPoint = path + "&offset=" + (i - 1000) + "&length=" + i;
-            if (i < 1000) {
-                endPoint = path + "&offset=0&length=" + i;
-
+        int offSet = offSetJson.getInt("offset");
+        StringBuilder logs = new StringBuilder();
+        int bytes = 50000;
+        if (lastLines >= 0) {
+            //Read 50000 bytes
+            int lineCount = 0;
+            for (int i = offSet; (i >= 0) && (lineCount <= lastLines); i = i - bytes) {
+                String endPoint = path + "&offset=" + (i - bytes) + "&length=" + i;
+                if (i < bytes) {
+                    endPoint = path + "&offset=0&length=" + i;
+                }
+                logs.insert(0, readLogsFromMesosEndpoint(path, endPoint));
+                lineCount = logs.toString().split("\n").length;
             }
-            response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
-            if (response.get().getStatusCode() != 200) {
-                throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
+        } else {
+            for (int i = offSet; i >= 0; i = i - bytes) {
+                String endPoint = path + "&offset=" + (i - bytes) + "&length=" + i;
+                if (i < bytes) {
+                    endPoint = path + "&offset=0&length=" + i;
+                }
+                logs.insert(0, readLogsFromMesosEndpoint(path, endPoint));
             }
-            commonspec.setResponse("GET", response.get());
-            JSONObject cctJsonResponse = new JSONObject(commonspec.getResponse().getResponse());
-            logs = cctJsonResponse.getString("data") + logs;
-            lineCount = logs.split("\n").length + lineCount;
         }
-        return logs;
+        String[] logsArray = logs.toString().split("\n");
+        if (lastLines < 0) {
+            return String.join("\n", logsArray).replaceAll("BDTEOL", "\\\\n").replaceAll("BDTTAB", "\\\\t");
+        }
+        return String.join("\n", Arrays.copyOfRange(logsArray, Math.max(logsArray.length - lastLines, 0), logsArray.length)).replaceAll("BDTEOL", "\\\\n").replaceAll("BDTTAB", "\\\\t");
     }
 
-    /**
-     * Obtain logs path from JSON
-     *
-     * @param response
-     * @param logType
-     * @param action
-     * @return path
-     */
-    public String obtainLogsPath(String response, String logType, String action) {
-        String path = null;
-        JSONObject cctJsonResponse = new JSONObject(response);
-        JSONArray arrayOfPaths = (JSONArray) cctJsonResponse.get("content");
-        for (int i = 0; i < arrayOfPaths.length(); i++) {
-            if (arrayOfPaths.getJSONObject(i).getString("name").equalsIgnoreCase(logType) && arrayOfPaths.getJSONObject(i).getString("action").equalsIgnoreCase(action)) {
-                path = arrayOfPaths.getJSONObject(i).getString("path");
-            }
+    private String readLogsFromMesosEndpoint(String path, String endPoint) throws Exception {
+        commonspec.getLogger().debug("Downloading log from endpoint: " + endPoint);
+        Future<Response> response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
+        if (response.get().getStatusCode() != 200) {
+            throw new Exception("Request failed to endpoint: " + path + " with status code: " + commonspec.getResponse().getStatusCode());
         }
-        return path;
+        commonspec.setResponse("GET", response.get());
+        JSONObject cctJsonResponse = new JSONObject(commonspec.getResponse().getResponse());
+        return cctJsonResponse.getString("data").replaceAll("\\\\n", "BDTEOL").replaceAll("\\\\t", "BDTTAB");
     }
-
-    /**
-     * Obtain info about task type from json
-     *
-     * @param response
-     * @param taskType
-     * @param info
-     * @return
-     */
-    public ArrayList<String> obtainMesosTaskInfo (String response, String taskType, String info) {
-        ArrayList<String> result = new ArrayList<String>();
-        JSONObject cctJsonResponse = new JSONObject(response);
-        JSONArray arrayOfTasks = (JSONArray) cctJsonResponse.get("tasks");
-        if (arrayOfTasks.length() == 1 || taskType == null) {
-            result.add((arrayOfTasks.getJSONObject(0).getString(info)));
-        }
-        String regex_name = ".*";
-        if (taskType != null) {
-            regex_name = ".[" + taskType + "]*";
-        }
-        for (int i = 0; i < arrayOfTasks.length(); i++) {
-            JSONObject task = arrayOfTasks.getJSONObject(i);
-            if (task.getString("name").matches(regex_name)) {
-                result.add((task.getString(info)));
-            }
-        }
-        return result;
-    }
-
 
     /**
      * Teardown a service with deploy-api
@@ -454,10 +424,7 @@ public class CCTSpec extends BaseGSpec {
     public void tearDownService(String service, String tenant) throws Exception {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
-
-        if (ThreadProperty.get("deploy_api_id") == null) {
-            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
-        }
+        Assert.assertNotNull(ThreadProperty.get("deploy_api_id"), "deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
         String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/teardown?frameworkName=" + service;
         Future<Response> response;
         response = commonspec.generateRequest("DELETE", false, null, null, endPoint, "", null, "");
@@ -501,9 +468,7 @@ public class CCTSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        if (ThreadProperty.get("deploy_api_id") == null) {
-            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
-        }
+        Assert.assertNotNull(ThreadProperty.get("deploy_api_id"), "deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
         String endPoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/deploy/scale?instances=" + instances + "&serviceName=" + service;
         Future<Response> response;
         response = commonspec.generateRequest("PUT", false, null, null, endPoint, "", null, "");
@@ -519,11 +484,11 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Checks service status in Command Center
      *
-     * @param timeout       : maximun waiting time
-     * @param wait          : check interval
-     * @param service       : service to obtain status from
-     * @param numTasks      : expected number of tasks to be found
-     * @param taskType      : type of tasks
+     * @param timeout        : maximun waiting time
+     * @param wait           : check interval
+     * @param service        : service to obtain status from
+     * @param numTasks       : expected number of tasks to be found
+     * @param taskType       : type of tasks
      * @param expectedStatus Expected status (healthy|unhealthy|running|stopped)
      * @throws Exception
      */
@@ -536,7 +501,7 @@ public class CCTSpec extends BaseGSpec {
         if (ThreadProperty.get("cct-marathon-services_id") != null) {
             endPoint = "/service/cct-marathon-services/v1/services/" + service;
         }
-        boolean  statusService = false;
+        boolean statusService = false;
         for (int i = 0; (i <= timeout) && (!statusService); i += wait) {
             try {
                 Future<Response> response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
@@ -557,10 +522,10 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Check status of a task in response of the CCT
      *
-     * @param expectedStatus    : expected status to be found
-     * @param response          : response obtained from request
-     * @param tasks             : number of tasks
-     * @param name              : tasks name
+     * @param expectedStatus : expected status to be found
+     * @param response       : response obtained from request
+     * @param tasks          : number of tasks
+     * @param name           : tasks name
      * @return
      */
     public boolean checkServiceStatusInResponse(String expectedStatus, String response, Integer tasks, String name) {
@@ -625,11 +590,11 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Checks in Command Center service status
      *
-     * @param timeout           : maximun waiting time
-     * @param wait              : check interval
-     * @param service           : service to be checked
-     * @param numTasks          : expected number fo tasks
-     * @param expectedStatus    : Expected status (healthy|unhealthy|running|stopped)
+     * @param timeout        : maximun waiting time
+     * @param wait           : check interval
+     * @param service        : service to be checked
+     * @param numTasks       : expected number fo tasks
+     * @param expectedStatus : Expected status (healthy|unhealthy|running|stopped)
      * @throws Exception
      */
     @Given("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, I check in CCT that the service '(.+?)'( with number of tasks '(\\d+)')? is in '(healthy|unhealthy|running|stopped)' status$")
@@ -681,9 +646,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Checks in Command Center response if the service has the expected status
      *
-     * @param expectedStatus        : Expected status (healthy|unhealthy)
-     * @param response              : Command center response
-     * @param useMarathonServices   : True if cct-marathon-services is used in request, False if deploy-api is used in request
+     * @param expectedStatus      : Expected status (healthy|unhealthy)
+     * @param response            : Command center response
+     * @param useMarathonServices : True if cct-marathon-services is used in request, False if deploy-api is used in request
      * @return If service status has the expected status
      */
     private boolean checkServiceStatusInResponse(String expectedStatus, String response, boolean useMarathonServices) {
@@ -695,16 +660,22 @@ public class CCTSpec extends BaseGSpec {
                 case "healthy":
                 case "unhealthy":
                     return healthiness.equalsIgnoreCase(expectedStatus);
-                case "running":     return status.equalsIgnoreCase("RUNNING");
-                case "stopped":     return status.equalsIgnoreCase("SUSPENDED");
+                case "running":
+                    return status.equalsIgnoreCase("RUNNING");
+                case "stopped":
+                    return status.equalsIgnoreCase("SUSPENDED");
                 default:
             }
         } else {
             switch (expectedStatus) {
-                case "healthy":     return response.contains("\"healthy\":1");
-                case "unhealthy":   return response.contains("\"healthy\":2");
-                case "running":     return response.contains("\"status\":2");
-                case "stopped":     return response.contains("\"status\":1");
+                case "healthy":
+                    return response.contains("\"healthy\":1");
+                case "unhealthy":
+                    return response.contains("\"healthy\":2");
+                case "running":
+                    return response.contains("\"status\":2");
+                case "stopped":
+                    return response.contains("\"status\":1");
                 default:
             }
         }
@@ -715,9 +686,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Checks in Command Center response if the service tasks are deployed successfully
      *
-     * @param response              : Command center response
-     * @param numTasks              : Command center response
-     * @param useMarathonServices   : True if cct-marathon-services is used in request, False if deploy-api is used in request
+     * @param response            : Command center response
+     * @param numTasks            : Command center response
+     * @param useMarathonServices : True if cct-marathon-services is used in request, False if deploy-api is used in request
      * @return If service status has the expected status
      */
     private boolean checkServiceDeployed(String response, int numTasks, boolean useMarathonServices) {
@@ -739,9 +710,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get info from centralized configuration
      *
-     * @param path      : path to obtain info from
-     * @param envVar    : thread variable where to save info (OPTIONAL)
-     * @param fileName  : file name where to save info (OPTIONAL)
+     * @param path     : path to obtain info from
+     * @param envVar   : thread variable where to save info (OPTIONAL)
+     * @param fileName : file name where to save info (OPTIONAL)
      * @throws Exception
      */
     @Given("^I get info from global config with path '(.*?)'( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -777,8 +748,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get global configuration from centralized configuration
      *
-     * @param envVar    : thread variable where to save info (OPTIONAL)
-     * @param fileName  : file name where to save info (OPTIONAL)
+     * @param envVar   : thread variable where to save info (OPTIONAL)
+     * @param fileName : file name where to save info (OPTIONAL)
      * @throws Exception
      */
     @Given("^I get global configuration( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -811,8 +782,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get schema from global configuration
      *
-     * @param envVar    : thread variable where to save info (OPTIONAL)
-     * @param fileName  : file name where to save info (OPTIONAL)
+     * @param envVar   : thread variable where to save info (OPTIONAL)
+     * @param fileName : file name where to save info (OPTIONAL)
      * @throws Exception
      */
     @Given("^I get schema from global configuration( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -880,8 +851,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get info for all networks
      *
-     * @param envVar    : thread variable where to save info (OPTIONAL)
-     * @param fileName  : file name where to save info (OPTIONAL)
+     * @param envVar   : thread variable where to save info (OPTIONAL)
+     * @param fileName : file name where to save info (OPTIONAL)
      * @throws Exception
      */
     @Given("^I get all networks( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -914,9 +885,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get Mesos configuration
      *
-     * @param path      : path to obtain configuration from
-     * @param envVar    : thread variable where to save info (OPTIONAL)
-     * @param fileName  : file name where to save info (OPTIONAL)
+     * @param path     : path to obtain configuration from
+     * @param envVar   : thread variable where to save info (OPTIONAL)
+     * @param fileName : file name where to save info (OPTIONAL)
      * @throws Exception
      */
     @Given("^I get path '(.*?)' from Mesos configuration( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -1138,12 +1109,12 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get service schema
      *
-     * @param level     : schema level
-     * @param service   : service name
-     * @param model     : service model
-     * @param version   : service version
-     * @param envVar    : environment variable to save response in
-     * @param fileName  : file name where response is saved
+     * @param level    : schema level
+     * @param service  : service name
+     * @param model    : service model
+     * @param version  : service version
+     * @param envVar   : environment variable to save response in
+     * @param fileName : file name where response is saved
      * @throws Exception
      */
     @Given("^I get schema( with level '(\\d+)')? from service '(.+?)' with model '(.+?)' and version '(.+?)'( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
@@ -1195,13 +1166,14 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Install service
-     * @param service   : service name
-     * @param folder    : folder where service are going to be installed
-     * @param model     : service model
-     * @param version   : service version
-     * @param name      : service instance name
-     * @param tenant    : tenant where to install service in
-     * @param jsonFile  : marathon json to deploy
+     *
+     * @param service  : service name
+     * @param folder   : folder where service are going to be installed
+     * @param model    : service model
+     * @param version  : service version
+     * @param name     : service instance name
+     * @param tenant   : tenant where to install service in
+     * @param jsonFile : marathon json to deploy
      * @throws Exception
      */
     @Given("^I install service '(.+?)'( in folder '(.+?)')? with model '(.+?)' and version '(.+?)' and instance name '(.+?)' in tenant '(.+?)' using json '(.+?)'$")
@@ -1249,7 +1221,7 @@ public class CCTSpec extends BaseGSpec {
         if (!"NONE".equals(tenant)) {
             serviceName = "/" + tenant + "/" + tenant + "-" + name;
             if (folder != null) {
-                serviceName =  "/" + tenant + "/" + folder + "/" + tenant + "-" + name;
+                serviceName = "/" + tenant + "/" + folder + "/" + tenant + "-" + name;
             }
         }
 
@@ -1259,8 +1231,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Uninstall service from tenant
      *
-     * @param service   : service name
-     * @param tenant    : tenant where service is installed
+     * @param service : service name
+     * @param tenant  : tenant where service is installed
      * @throws Exception
      */
     @Given("^I uninstall service '(.+?)'( in folder '(.+?)')? from tenant '(.+?)'$")
@@ -1279,7 +1251,7 @@ public class CCTSpec extends BaseGSpec {
         if (!"NONE".equals(tenant)) {
             serviceName = tenant + "/" + tenant + "-" + service;
             if (folder != null) {
-                serviceName =  tenant + "/" + folder + "/" + tenant + "-" + service;
+                serviceName = tenant + "/" + folder + "/" + tenant + "-" + service;
             }
         }
 
@@ -1316,9 +1288,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Upload rules
      *
-     * @param rulesPath   : path to rules zip file
-     * @param priority    : priority to assign to the rules (OPTIONAL)
-     * @param version     : version to use for rules (OPTIONAL)
+     * @param rulesPath : path to rules zip file
+     * @param priority  : priority to assign to the rules (OPTIONAL)
+     * @param version   : version to use for rules (OPTIONAL)
      * @throws Exception
      */
     @Given("^I upload rules file '(.+?)'( with priority '(.+?)')?( overriding version to '(.+?)')?")
@@ -1331,9 +1303,7 @@ public class CCTSpec extends BaseGSpec {
         commonspec.setCCTConnection(null, null);
 
         // Obtain endpoint
-        if (ThreadProperty.get("deploy_api_id") == null) {
-            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
-        }
+        Assert.assertNotNull(ThreadProperty.get("deploy_api_id"), "deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
         String endPointUpload = "/service/" + ThreadProperty.get("deploy_api_id") + "/knowledge/upload";
 
         // Obtain URL
@@ -1346,7 +1316,7 @@ public class CCTSpec extends BaseGSpec {
         if (priority == null) {
             priority = "0";
         }
-        forms = forms + " -F \"priority=" + priority  + "\"";
+        forms = forms + " -F \"priority=" + priority + "\"";
 
         if (version != null) {
             forms = forms + " -F \"version=" + version + "\"";
@@ -1365,8 +1335,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Upload descriptors
      *
-     * @param descriptorsPath   : path to descriptors zip file
-     * @param version           : version to use for rules (OPTIONAL)
+     * @param descriptorsPath : path to descriptors zip file
+     * @param version         : version to use for rules (OPTIONAL)
      * @throws Exception
      */
     @Given("^I upload descriptors file '(.+?)'( overriding version to '(.+?)')?")
@@ -1462,9 +1432,7 @@ public class CCTSpec extends BaseGSpec {
      */
     @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')? with:$")
     public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile, DataTable modifications) throws Exception {
-        if (ThreadProperty.get("deploy_api_id") == null) {
-            fail("deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
-        }
+        Assert.assertNotNull(ThreadProperty.get("deploy_api_id"), "deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
 
         // obtain service name
         if (folder != null && folder.startsWith("/")) {
@@ -1481,7 +1449,7 @@ public class CCTSpec extends BaseGSpec {
         if (!"NONE".equals(tenant)) {
             service = tenant + "/" + tenant + "-" + serviceName;
             if (folder != null) {
-                service =  tenant + "/" + folder + "/" + tenant + "-" + serviceName;
+                service = tenant + "/" + folder + "/" + tenant + "-" + serviceName;
             }
         }
 
@@ -1543,10 +1511,10 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Update a deployed service
      *
-     * @param serviceName   : name of the service to be updated
-     * @param folder        : name of the folder where service is deployed (OPTIONAL)
-     * @param tenant        : tenant where service is deployed
-     * @param version       : version of the deployed service
+     * @param serviceName : name of the service to be updated
+     * @param folder      : name of the folder where service is deployed (OPTIONAL)
+     * @param tenant      : tenant where service is deployed
+     * @param version     : version of the deployed service
      * @throws Exception
      */
     @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')?$")
@@ -1680,15 +1648,13 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Read value from centralized configuration path
      *
-     * @param path      : path to read value from (separated with '/')
-     * @param envVar    : environment variable where to store the read value
+     * @param path   : path to read value from (separated with '/')
+     * @param envVar : environment variable where to store the read value
      * @throws Exception
      */
     @When("^I read value in path '(.+?)' from central configuration and save it in environment variable '(.+?)'$")
     public void readValueCentralConfig(String path, String envVar) throws Exception {
-        if (ThreadProperty.get("configuration_api_id") == null) {
-            fail("configuration_api_id variable is not set. Check configuration-api is installed and @dcos annotation is working properly.");
-        }
+        Assert.assertNotNull(ThreadProperty.get("configuration_api_id"), "configuration_api_id variable is not set. Check configuration-api is installed and @dcos annotation is working properly.");
 
         // Set REST connection
         commonspec.setCCTConnection(null, null);
@@ -1824,7 +1790,6 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
      * @param secret
      * @param path
      * @param cn
@@ -1848,7 +1813,6 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
      * @param secret
      * @param path
      * @param name
@@ -1869,7 +1833,6 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
      * @param secret
      * @param path
      * @param name
@@ -1886,10 +1849,9 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
-     * @param endPoint      : service endpoint to login to
-     * @param baseData      : data to base request on
-     * @param type          : type of base data
+     * @param endPoint : service endpoint to login to
+     * @param baseData : data to base request on
+     * @param type     : type of base data
      * @throws Exception
      */
     @When("^I login to '(.+?)' based on '([^:]+?)' as '(json|string)'$")
@@ -1898,7 +1860,6 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
      * @param endPoint      : service endpoint to login to
      * @param baseData      : data to base request on
      * @param type          : type of base data
@@ -1911,7 +1872,6 @@ public class CCTSpec extends BaseGSpec {
     }
 
     /**
-     *
      * @param endPoint : service endpoint to logout from
      * @throws Exception
      */
@@ -1923,14 +1883,15 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get internal or external ip for service Id and tasks
      *
-     * @param type          type of ip, internal (calico) or external
-     * @param serviceId     service Id including '/'
-     * @param taskName      name of task in the service
-     * @param envVar        environment variable where to store the read value
+     * @param type      type of ip, internal (calico) or external
+     * @param serviceId service Id including '/'
+     * @param taskName  name of task in the service
+     * @param envVar    environment variable where to store the read value
      * @throws Exception
      */
     @Given("^I get the '(internal|external)' ip for service id '(.+?)' for task name '(.+?)'( and save it in environment variable '(.*?)')?")
-    @Deprecated // TODO Refactor with "^I get host ip for task '(.+?)' in service with id '(.+?)' from CCT and save the value in environment variable '(.+?)'$"
+    @Deprecated
+    // TODO Refactor with "^I get host ip for task '(.+?)' in service with id '(.+?)' from CCT and save the value in environment variable '(.+?)'$"
     public void getMachineIp(String type, String serviceId, String taskName, String envVar) throws Exception {
 
         String ip = null;
@@ -2116,12 +2077,12 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get both PEM and KEY from specified certificate. The ouput files are:
+     * <p>
+     * target/test-classes/<value>.pem
+     * target/test-classes/<value>.key
      *
-     *    target/test-classes/<value>.pem
-     *    target/test-classes/<value>.key
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2138,11 +2099,11 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get PEM from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.pem
      *
-     *    target/test-classes/<value>.pem
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2157,11 +2118,11 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get KEY from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.key
      *
-     *    target/test-classes/<value>.key
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2176,8 +2137,8 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get CA Bundle from cluster. The ouput file is:
-     *
-     *    target/test-classes/ca.crt
+     * <p>
+     * target/test-classes/ca.crt
      *
      * @throws Exception
      */
@@ -2195,12 +2156,12 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get P12 from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.p12
      *
-     *    target/test-classes/<value>.p12
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
-     * @param envVar environment variable to save the P12 password
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
+     * @param envVar   environment variable to save the P12 password
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2215,12 +2176,12 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get JKS from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.jks
      *
-     *    target/test-classes/<value>.jks
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
-     * @param envVar environment variable to save the P12 password
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
+     * @param envVar   environment variable to save the P12 password
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2235,11 +2196,11 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get PK8 from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.pk8
      *
-     *    target/test-classes/<value>.pk8
-     *
-     * @param value specific certificate's entry
-     * @param path certificate's path in Vault
+     * @param value    specific certificate's entry
+     * @param path     certificate's path in Vault
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2254,8 +2215,8 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get Truststore with the cluster CA Bundle. The ouput file is:
-     *
-     *    target/test-classes/truststore.jks
+     * <p>
+     * target/test-classes/truststore.jks
      *
      * @throws Exception
      */
@@ -2269,11 +2230,11 @@ public class CCTSpec extends BaseGSpec {
 
     /**
      * Get Keytab from specified certificate. The ouput file is:
+     * <p>
+     * target/test-classes/<value>.keytab
      *
-     *    target/test-classes/<value>.keytab
-     *
-     * @param value specific keytab's entry
-     * @param path Keytab's path in Vault
+     * @param value    specific keytab's entry
+     * @param path     Keytab's path in Vault
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2289,9 +2250,9 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get 'principal' from specified Keytab. The ouput is the 'principal' saved in environmental variable.
      *
-     * @param value specific principal's entry
-     * @param path Keytab's path in Vault
-     * @param envVar environment variable to save the principal
+     * @param value    specific principal's entry
+     * @param path     Keytab's path in Vault
+     * @param envVar   environment variable to save the principal
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2306,8 +2267,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get 'pass' from specified password. The ouput is the 'pass' saved in environmental variable.
      *
-     * @param path Password's path in Vault
-     * @param envVar environment variable to save the password
+     * @param path     Password's path in Vault
+     * @param envVar   environment variable to save the password
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
@@ -2322,8 +2283,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Get 'user' from specified password. The ouput is the 'user' saved in environmental variable.
      *
-     * @param path Password's path in Vault
-     * @param envVar environment variable to save the user
+     * @param path     Password's path in Vault
+     * @param envVar   environment variable to save the user
      * @param inPeople [optional] look into /people in Vault (/userland by default)
      * @throws Exception
      */
