@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.20.0 (upcoming)
+
+* Pending changelog
+
 ## 0.19.0 (upcoming)
 
 * Bump log4j-core, log4j-slf4j-impl and log4j-1.2-api from 2.0 to 2.13.2
