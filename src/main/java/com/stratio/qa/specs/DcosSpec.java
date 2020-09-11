@@ -883,6 +883,7 @@ public class DcosSpec extends BaseGSpec {
         String bootstrap_ip = System.getProperty("BOOTSTRAP_IP");
         String bootstrap_user;
         String bootstrap_pem;
+        String remotePort;
 
         // Check if needed parameters have been passed
         if (bootstrap_ip == null) {
@@ -903,9 +904,15 @@ public class DcosSpec extends BaseGSpec {
             localCaTrustFilePath = "./target/test-classes/ca_test.crt";
         }
 
+        if (System.getProperty("EOS_NEW_SSH_PORT") != null) {
+            remotePort = System.getProperty("EOS_NEW_SSH_PORT");
+        } else {
+            remotePort = "22";
+        }
+
         // Open connection to bootstrap
         commonspec.getLogger().debug("Openning connection to bootstrap to obtain descriptor file: " + descriptorPath);
-        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(bootstrap_user, null, bootstrap_ip, "22", bootstrap_pem), "bootstrap_connection");
+        commonspec.setRemoteSSHConnection(new RemoteSSHConnection(bootstrap_user, null, bootstrap_ip, remotePort, bootstrap_pem), "bootstrap_connection");
 
         // Make local copy of vault response file
         commonspec.getLogger().debug("Copying vault_response file to: " + localVaultResponseFilePath);
@@ -1042,6 +1049,7 @@ public class DcosSpec extends BaseGSpec {
         String localVaultResponseFile;
         String localVaultResponseFilePath;
         String localCaTrustFilePath;
+        String remotePort;
 
         // General values
         String varClusterID = "EOS_CLUSTER_ID";
@@ -1116,9 +1124,15 @@ public class DcosSpec extends BaseGSpec {
             }
         }
 
+        if (System.getProperty("EOS_NEW_SSH_PORT") != null) {
+            remotePort = System.getProperty("EOS_NEW_SSH_PORT");
+        } else {
+            remotePort = "22";
+        }
+
         if (!bootstrapInfoObtained) {
             commonspec.getLogger().debug("Openning connection to bootstrap to obtain descriptor file: " + descriptorPath);
-            commonspec.setRemoteSSHConnection(new RemoteSSHConnection(bootstrap_user, null, bootstrap_ip, "22", bootstrap_pem), "bootstrap_connection");
+            commonspec.setRemoteSSHConnection(new RemoteSSHConnection(bootstrap_user, null, bootstrap_ip, remotePort, bootstrap_pem), "bootstrap_connection");
 
             commonspec.getLogger().debug("Copying descriptor file to: " + localDescriptorFilePath);
             commonspec.getRemoteSSHConnection().copyFrom(descriptorPath, localDescriptorFilePath);
