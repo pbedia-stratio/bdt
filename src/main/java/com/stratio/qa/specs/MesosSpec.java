@@ -30,21 +30,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class MesosSpec extends BaseGSpec {
 
-    private MesosApiClient mesosApiClient;
-
     public MesosSpec(CommonG spec) {
 
         this.commonspec = spec;
-        mesosApiClient = MesosApiClient.getInstance(this.commonspec);
     }
 
     @Then("^task with id '(.+?)'( does not)? exist[s]? in mesos$")
     public void checkTaskId(String taskId, String notExist) throws Exception {
         if (notExist == null) {
-            assertThat(mesosApiClient.getMesosTask(taskId).getTasks().size())
+            assertThat(this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().size())
                             .as("Mesos task for id " + taskId + " not found in mesos").isNotEqualTo(0);
         } else {
-            assertThat(mesosApiClient.getMesosTask(taskId).getTasks().size())
+            assertThat(this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().size())
                             .as("Mesos task for id " + taskId + " found in mesos").isEqualTo(0);
         }
     }
@@ -54,9 +51,9 @@ public class MesosSpec extends BaseGSpec {
         int time = 0;
         while (time < timeout) {
 
-            if (mesosApiClient.getMesosTask(taskId).getTasks().size() == 0 && notExist != null) {
+            if (this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().size() == 0 && notExist != null) {
                 return;
-            } else if (mesosApiClient.getMesosTask(taskId).getTasks().size() != 0 && notExist == null) {
+            } else if (this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().size() != 0 && notExist == null) {
                 return;
             }
 
@@ -71,7 +68,7 @@ public class MesosSpec extends BaseGSpec {
     @Then("^task with id '(.+?)' appears with state '(running|killed|failed|finished|staging|starting)' in mesos$")
     public void checkTaskIdState(String taskId, String state) throws Exception {
 
-        List<MesosTask> tasks = mesosApiClient.getMesosTask(taskId).getTasks();
+        List<MesosTask> tasks = this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks();
         assertThat(tasks.size() > 0)
                 .as("Mesos task for id " + taskId + " found in mesos")
                 .isTrue();
@@ -86,7 +83,7 @@ public class MesosSpec extends BaseGSpec {
         List<MesosTask> tasks;
         while (time < timeout) {
 
-            tasks = mesosApiClient.getMesosTask(taskId).getTasks();
+            tasks = this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks();
             if (tasks.size() != 0 && tasks.get(0).getState().equals(MesosConstants.statesDict.get(state))) {
                 return;
             }
@@ -101,10 +98,10 @@ public class MesosSpec extends BaseGSpec {
 
     @When("^I get container name for task '(.+?)' in service with id '(.+?)' from Marathon and save the value in environment variable '(.+?)'$")
     public void getMesosTaskContainerName(String taskName, String serviceId, String envVar) throws Exception {
-        String taskId = MarathonApiClient.utils.getTaskId(taskName, serviceId);
+        String taskId = this.commonspec.marathonUtils.getTaskId(taskName, serviceId);
 
-        MesosTask mesosTask = mesosApiClient.getMesosTask(taskId).getTasks().get(0);
-        String containerId = MesosApiClient.utils.getMesosTaskContainerId(mesosTask);
+        MesosTask mesosTask = this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().get(0);
+        String containerId = this.commonspec.mesosUtils.getMesosTaskContainerId(mesosTask);
         assertThat(containerId).as("Error searching containerId for mesos task: " + taskId).isNotNull();
 
         String containerName = "mesos-".concat(containerId);

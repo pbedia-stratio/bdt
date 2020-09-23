@@ -35,6 +35,13 @@ import com.ning.http.client.Realm;
 import com.ning.http.client.Realm.AuthScheme;
 import com.ning.http.client.Response;
 import com.ning.http.client.cookie.Cookie;
+import com.stratio.qa.clients.cct.CctMarathonServiceApiClient;
+import com.stratio.qa.clients.cct.ConfigurationApiClient;
+import com.stratio.qa.clients.cct.DeployApiClient;
+import com.stratio.qa.clients.marathon.MarathonApiClient;
+import com.stratio.qa.clients.marathon.MarathonUtils;
+import com.stratio.qa.clients.mesos.MesosApiClient;
+import com.stratio.qa.clients.mesos.MesosUtils;
 import com.stratio.qa.conditions.Conditions;
 import com.stratio.qa.utils.*;
 import io.cucumber.datatable.DataTable;
@@ -133,6 +140,20 @@ public class CommonG {
     private Optional<SearchResult> previousLdapResults;
 
     private Map<String, List<String>> previousSqlResult = null;
+
+    MarathonApiClient marathonClient;
+
+    MarathonUtils marathonUtils;
+
+    MesosApiClient mesosApiClient;
+
+    MesosUtils mesosUtils;
+
+    CctMarathonServiceApiClient cctMarathonServiceClient;
+
+    ConfigurationApiClient configurationApiClient;
+
+    DeployApiClient deployApiClient;
 
     /**
      * Checks if a given string matches a regular expression or contains a string
@@ -2574,5 +2595,14 @@ public class CommonG {
     public HDFSSecUtils getHDFSSecUtils() {
         return HDFSSecUtil.INSTANCE.getHDFSSecUtils();
     }
-}
 
+    public void initClients() {
+        marathonClient = MarathonApiClient.getInstance(this);
+        marathonUtils = new MarathonUtils(marathonClient);
+        mesosApiClient = MesosApiClient.getInstance(this);
+        mesosUtils = new MesosUtils(mesosApiClient);
+        cctMarathonServiceClient = CctMarathonServiceApiClient.getInstance(this);
+        configurationApiClient = ConfigurationApiClient.getInstance(this);
+        deployApiClient = DeployApiClient.getInstance(this);
+    }
+}

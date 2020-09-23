@@ -18,9 +18,6 @@ package com.stratio.qa.specs;
 
 import com.ning.http.client.Response;
 import com.stratio.qa.assertions.Assertions;
-import com.stratio.qa.clients.cct.CctMarathonServiceApiClient;
-import com.stratio.qa.clients.cct.DeployApiClient;
-import com.stratio.qa.clients.mesos.MesosApiClient;
 import com.stratio.qa.models.cct.deployApi.DeployedApp;
 import com.stratio.qa.models.cct.deployApi.DeployedTask;
 import com.stratio.qa.models.cct.deployApi.SandboxItem;
@@ -60,16 +57,11 @@ public class CCTSpec extends BaseGSpec {
 
     private final Logger logger = LoggerFactory.getLogger(CCTSpec.class);
 
+    private static final int MAX_TASKS = 10000;
+
     CCTUtils cctUtils;
 
     RestSpec restSpec;
-
-    private DeployApiClient deployApiClient;
-
-    private CctMarathonServiceApiClient marathonServiceApiClient;
-
-    private MesosApiClient mesosApiClient;
-
     /**
      * Generic constructor.
      *
@@ -79,9 +71,6 @@ public class CCTSpec extends BaseGSpec {
         this.commonspec = spec;
         restSpec = new RestSpec(spec);
         cctUtils = new CCTUtils(spec);
-        deployApiClient = DeployApiClient.getInstance(this.commonspec);
-        marathonServiceApiClient = CctMarathonServiceApiClient.getInstance(this.commonspec);
-        mesosApiClient = MesosApiClient.getInstance(this.commonspec);
     }
 
     @When("^I get taskId for task '(.+?)' in service with id '(.+?)' from CCT and save the value in environment variable '(.+?)'$")
@@ -115,7 +104,7 @@ public class CCTSpec extends BaseGSpec {
     }
 
     private DeployedTask getServiceTaskFromDeployApi(String serviceId, String taskName) throws Exception {
-        DeployedApp app = deployApiClient.getDeployedApp(serviceId);
+        DeployedApp app = this.commonspec.deployApiClient.getDeployedApp(serviceId);
         return app.getTasks().stream()
                 .filter(task -> task.getState().equals(MesosTask.Status.TASK_RUNNING.toString()))
                 .filter(task -> task.getName().matches(taskName))
@@ -123,7 +112,7 @@ public class CCTSpec extends BaseGSpec {
     }
 
     private DeployedServiceTask getServiceTaskFromCctMarathonService(String serviceId, String taskName) throws Exception {
-        DeployedService service = marathonServiceApiClient.getService(serviceId);
+        DeployedService service = this.commonspec.cctMarathonServiceClient.getService(serviceId, 1, CCTSpec.MAX_TASKS);
         return service.getTasks().stream()
                 .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
                 .filter(task -> task.getName().matches(taskName))
@@ -142,8 +131,8 @@ public class CCTSpec extends BaseGSpec {
             taskId = task.getId();
         }
 
-        MesosTask mesosTask = mesosApiClient.getMesosTask(taskId).getTasks().get(0);
-        String containerId = MesosApiClient.utils.getMesosTaskContainerId(mesosTask);
+        MesosTask mesosTask = this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().get(0);
+        String containerId = this.commonspec.mesosUtils.getMesosTaskContainerId(mesosTask);
         assertThat(containerId).as("Error searching containerId for mesos task: " + taskId).isNotNull();
 
         String containerName = "mesos-".concat(containerId);
@@ -305,7 +294,7 @@ public class CCTSpec extends BaseGSpec {
 
     private String generateMesosLogPath(String taskId, String logType) {
         try {
-            MesosTask mesosTask = mesosApiClient.getMesosTask(taskId).getTasks().get(0);
+            MesosTask mesosTask = this.commonspec.mesosApiClient.getMesosTask(taskId).getTasks().get(0);
             String slaveId = mesosTask.getSlaveId();
             String frameworkId = mesosTask.getFrameworkId();
             String containerId = ((LinkedHashMap<String, String>) mesosTask.getStatuses().get(0).getContainerStatus().get("container_id")).get("value");
@@ -326,14 +315,14 @@ public class CCTSpec extends BaseGSpec {
      * @throws Exception
      */
     private String getLogPathFromDeployApi(String logType, String service, String taskNameOrId, String expectedTaskStatus, Integer position, boolean isTaskId) throws Exception {
-        DeployedTask deployedTask = deployApiClient.getDeployedApp(service).getTasks().stream()
+        DeployedTask deployedTask = this.commonspec.deployApiClient.getDeployedApp(service).getTasks().stream()
                 .filter(expectedTaskStatus != null ? task -> task.getState().equals(expectedTaskStatus) : task -> true)
                 .filter(task -> isTaskId ? task.getId().matches(taskNameOrId) : task.getName().matches(taskNameOrId))
                 .sorted(Comparator.comparing(DeployedTask::getTimestamp).reversed())
                 .skip(position)
                 .findFirst().orElse(null);
         if (deployedTask != null) {
-            SandboxItem sandboxItem = deployApiClient.getLogPaths(deployedTask.getId()).getList().stream()
+            SandboxItem sandboxItem = this.commonspec.deployApiClient.getLogPaths(deployedTask.getId()).getList().stream()
                     .filter(log -> log.getAction().equals("read"))
                     .findFirst().orElse(null);
             if (sandboxItem != null && sandboxItem.getPath() != null) {
@@ -356,14 +345,14 @@ public class CCTSpec extends BaseGSpec {
      * @throws Exception
      */
     private String getLogPathFromMarathonServices(String logType, String service, String taskNameOrId, TaskStatus expectedTaskStatus, Integer position, boolean isTaskId) throws Exception {
-        DeployedServiceTask deployedServiceTask = marathonServiceApiClient.getService(service, 1, 50).getTasks().stream()
+        DeployedServiceTask deployedServiceTask = this.commonspec.cctMarathonServiceClient.getService(service, 1, 50).getTasks().stream()
                 .filter(expectedTaskStatus != null ? task -> task.getStatus().equals(expectedTaskStatus) : task -> true)
                 .filter(task -> isTaskId ? task.getId().matches(taskNameOrId) : task.getName().matches(taskNameOrId))
                 .sorted(Comparator.comparing(DeployedServiceTask::getTimestamp).reversed())
                 .skip(position)
                 .findFirst().orElse(null);
         if (deployedServiceTask != null) {
-            TaskLog taskLog = marathonServiceApiClient.getLogPaths(deployedServiceTask.getId()).getContent().stream()
+            TaskLog taskLog = this.commonspec.cctMarathonServiceClient.getLogPaths(deployedServiceTask.getId()).getContent().stream()
                     .filter(log -> log.getAction() == LogAction.READ)
                     .filter(log -> log.getName().equals(logType))
                     .findFirst().orElse(null);
