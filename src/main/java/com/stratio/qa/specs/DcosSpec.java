@@ -892,29 +892,33 @@ public class DcosSpec extends BaseGSpec {
             if (bootstrap_ip == null) {
                 throw new Exception("BOOTSTRAP_IP variable needs to be provided in order to obtain information from system.");
             }
-        } else {
-            bootstrap_user = ThreadProperty.get("CLUSTER_SSH_USER");
-            if (bootstrap_user == null) {
-                bootstrap_user = System.getProperty("REMOTE_USER");
-
-                if (bootstrap_user == null) {
-                    throw new Exception("REMOTE_USER variable needs to be provided in order to obtain information from system.");
-                }
-            } else {
-                bootstrap_pem = ThreadProperty.get("CLUSTER_SSH_PEM_PATH");
-                if (bootstrap_pem == null) {
-                    bootstrap_pem = (System.getProperty("PEM_FILE_PATH"));
-
-                    if (bootstrap_pem == null) {
-                        throw new Exception("PEM_FILE_PATH variable needs to be provided in order to obtain information from system.");
-                    }
-                }
-            }
-
-            localVaultResponseFile = "vault_response_" + bootstrap_ip;
-            localVaultResponseFilePath = "./target/test-classes/" + localVaultResponseFile;
-            localCaTrustFilePath = "./target/test-classes/ca_test.crt";
         }
+        String bootstrap_ipSystem = System.getProperty("BOOTSTRAP_IP");
+        if (bootstrap_ipSystem == null) {
+            System.setProperty("BOOTSTRAP_IP", bootstrap_ip);
+        }
+
+        bootstrap_user = ThreadProperty.get("CLUSTER_SSH_USER") != null ? ThreadProperty.get("CLUSTER_SSH_USER") : System.getProperty("REMOTE_USER");
+        assertThat(bootstrap_user).as("REMOTE_USER variable needs to be provided in order to obtain information from system.").isNotNull();
+        ThreadProperty.set("CLUSTER_SSH_USER", bootstrap_user);
+
+        String remote_user = System.getProperty("REMOTE_USER");
+        if (remote_user == null) {
+            System.setProperty("REMOTE_USER", bootstrap_user);
+        }
+
+        bootstrap_pem = ThreadProperty.get("CLUSTER_SSH_PEM_PATH") != null ? ThreadProperty.get("CLUSTER_SSH_PEM_PATH") : System.getProperty("PEM_FILE_PATH");
+        assertThat(bootstrap_pem).as("PEM_FILE_PATH variable needs to be provided in order to obtain information from system.").isNotNull();
+        ThreadProperty.set("CLUSTER_SSH_PEM_PATH", bootstrap_pem);
+
+        String pem_file_path = System.getProperty("PEM_FILE_PATH");
+        if (pem_file_path == null) {
+            System.setProperty("PEM_FILE_PATH", bootstrap_pem);
+        }
+
+        localVaultResponseFile = "vault_response_" + bootstrap_ip;
+        localVaultResponseFilePath = "./target/test-classes/" + localVaultResponseFile;
+        localCaTrustFilePath = "./target/test-classes/ca_test.crt";
 
         if (System.getProperty("EOS_NEW_SSH_PORT") != null) {
             remotePort = System.getProperty("EOS_NEW_SSH_PORT");
@@ -1057,7 +1061,8 @@ public class DcosSpec extends BaseGSpec {
 
         String clusterName = System.getProperty("EOS_CLUSTER_ID");
         if (clusterName == null) {
-            throw new Exception("EOS_CLUSTER_ID variable needs to be provided in order to obtain information from workspace.");
+            commonspec.getLogger().info("Info cannot be retrieved from workspace without EOS_CLUSTER_ID. BOOTSTRAP_IP, REMOTE_USER and PEM_FILE_PATH need to be provided.");
+            return;
         }
 
         String daedalusSystem = "daedalus-workspaces.int.stratio.com";
@@ -1066,14 +1071,22 @@ public class DcosSpec extends BaseGSpec {
 
         // Download workspace
         String commandWget = "wget " + workspaceURL;
-        CommandExecutionSpec commandExecutionSpec = new CommandExecutionSpec(commonspec);
-        commandExecutionSpec.executeLocalCommand(commandWget, null, null);
-//        Thread.sleep(5000);
+        commonspec.runLocalCommand(commandWget);
+        if (commonspec.getCommandExitStatus() != 0) {
+            String bootstrap_ip = System.getProperty("BOOTSTRAP_IP");
+            String remote_user = System.getProperty("REMOTE_USER");
+            String pem_file_path = System.getProperty("PEM_FILE_PATH");
+            if (bootstrap_ip == null || remote_user == null || pem_file_path == null) {
+                throw new Exception("Not possible to download workspace tgz.");
+            }
+            commonspec.getLogger().info("Info cannot be retrieved from workspace. Trying old way");
+            return;
+        }
 
         // Untar workspace
+        CommandExecutionSpec commandExecutionSpec = new CommandExecutionSpec(commonspec);
         String commandUntar = "tar -C ./target/test-classes/ -xvf " + workspaceName + ".tgz";
         commandExecutionSpec.executeLocalCommand(commandUntar, null, null);
-//        Thread.sleep(5000);
 
         // Obtain and export values
         String daedalusJson = commonspec.retrieveData(workspaceName + "/daedalus.json", "json");
@@ -1151,31 +1164,35 @@ public class DcosSpec extends BaseGSpec {
             if (bootstrap_ip == null) {
                 throw new Exception("BOOTSTRAP_IP variable needs to be provided in order to obtain information from system.");
             }
-        } else {
-            bootstrap_user = ThreadProperty.get("CLUSTER_SSH_USER");
-            if (bootstrap_user == null) {
-                bootstrap_user = System.getProperty("REMOTE_USER");
-
-                if (bootstrap_user == null) {
-                    throw new Exception("REMOTE_USER variable needs to be provided in order to obtain information from system.");
-                }
-            } else {
-                bootstrap_pem = ThreadProperty.get("CLUSTER_SSH_PEM_PATH");
-                if (bootstrap_pem == null) {
-                    bootstrap_pem = (System.getProperty("PEM_FILE_PATH"));
-
-                    if (bootstrap_pem == null) {
-                        throw new Exception("PEM_FILE_PATH variable needs to be provided in order to obtain information from system.");
-                    }
-                }
-            }
-
-            localDescriptorFile = "descriptor_" + bootstrap_ip + ".json";
-            localDescriptorFilePath = "./target/test-classes/" + localDescriptorFile;
-            localVaultResponseFile = "vault_response_" + bootstrap_ip;
-            localVaultResponseFilePath = "./target/test-classes/" + localVaultResponseFile;
-            localCaTrustFilePath = "./target/test-classes/ca_test.crt";
         }
+        String bootstrap_ipSystem = System.getProperty("BOOTSTRAP_IP");
+        if (bootstrap_ipSystem == null) {
+            System.setProperty("BOOTSTRAP_IP", bootstrap_ip);
+        }
+
+        bootstrap_user = ThreadProperty.get("CLUSTER_SSH_USER") != null ? ThreadProperty.get("CLUSTER_SSH_USER") : System.getProperty("REMOTE_USER");
+        assertThat(bootstrap_user).as("REMOTE_USER variable needs to be provided in order to obtain information from system.").isNotNull();
+        ThreadProperty.set("CLUSTER_SSH_USER", bootstrap_user);
+
+        String remote_user = System.getProperty("REMOTE_USER");
+        if (remote_user == null) {
+            System.setProperty("REMOTE_USER", bootstrap_user);
+        }
+
+        bootstrap_pem = ThreadProperty.get("CLUSTER_SSH_PEM_PATH") != null ? ThreadProperty.get("CLUSTER_SSH_PEM_PATH") : System.getProperty("PEM_FILE_PATH");
+        assertThat(bootstrap_pem).as("PEM_FILE_PATH variable needs to be provided in order to obtain information from system.").isNotNull();
+        ThreadProperty.set("CLUSTER_SSH_PEM_PATH", bootstrap_pem);
+
+        String pem_file_path = System.getProperty("PEM_FILE_PATH");
+        if (pem_file_path == null) {
+            System.setProperty("PEM_FILE_PATH", bootstrap_pem);
+        }
+
+        localDescriptorFile = "descriptor_" + bootstrap_ip + ".json";
+        localDescriptorFilePath = "./target/test-classes/" + localDescriptorFile;
+        localVaultResponseFile = "vault_response_" + bootstrap_ip;
+        localVaultResponseFilePath = "./target/test-classes/" + localVaultResponseFile;
+        localCaTrustFilePath = "./target/test-classes/ca_test.crt";
 
         String[] vars = {varClusterID, varClusterDomain, varInternalDomain, varIp, varAdminUser, varTenant, varVaultHost, varVaultToken, varPublicNode, varAccessPoint, varRealm, varAddressPool, varLDAPurl, varLDAPport, varLDAPuserDn, varLDAPgroupDn, varLDAPbase, varLDAPadminGroup};
         boolean bootstrapInfoObtained = true;
