@@ -5,6 +5,9 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 ## 0.20.0 (upcoming)
 
 * [CROSSDATA-2740] Fix get service/container port from Marathon API in DCOS 1.8
+* [PQA-40] retrieve ssh user from descriptor
+* [PQA-42] obtain info from workspace 
+* [SPK-988] Fix runInAllNodes spec
 
 ## 0.19.1 (September 16, 2020)
 

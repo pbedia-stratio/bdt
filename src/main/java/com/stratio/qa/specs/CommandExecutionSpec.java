@@ -484,7 +484,7 @@ public class CommandExecutionSpec extends BaseGSpec {
     private String constructSshParallelCmd(String command, String user, String pem, String node) {
         return "ssh -o StrictHostKeyChecking=no -o " +
                 "UserKnownHostsFile=/dev/null " +
-                "-i /" + pem + " " +
+                "-i " + pem + " " +
                 user + "@" + node + " '" +
                 command + "' &\n";
     }
@@ -492,7 +492,7 @@ public class CommandExecutionSpec extends BaseGSpec {
     private String constructSshParallelCopyFileCmd(String localPath, String remotePath, String user, String pem, String node) {
         return "scp -o StrictHostKeyChecking=no -o " +
                 "UserKnownHostsFile=/dev/null " +
-                "-rp -i /" + pem + " " + localPath + " " +
+                "-rp -i " + pem + " " + localPath + " " +
                 user + "@" + node + ":" +
                 remotePath + " &\n";
     }
