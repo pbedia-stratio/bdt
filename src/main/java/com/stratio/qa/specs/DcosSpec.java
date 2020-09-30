@@ -892,6 +892,7 @@ public class DcosSpec extends BaseGSpec {
             if (bootstrap_ip == null) {
                 throw new Exception("BOOTSTRAP_IP variable needs to be provided in order to obtain information from system.");
             }
+            ThreadProperty.set("BOOTSTRAP_IP", bootstrap_ip);
         }
         String bootstrap_ipSystem = System.getProperty("BOOTSTRAP_IP");
         if (bootstrap_ipSystem == null) {
@@ -1164,6 +1165,7 @@ public class DcosSpec extends BaseGSpec {
             if (bootstrap_ip == null) {
                 throw new Exception("BOOTSTRAP_IP variable needs to be provided in order to obtain information from system.");
             }
+            ThreadProperty.set("BOOTSTRAP_IP", bootstrap_ip);
         }
         String bootstrap_ipSystem = System.getProperty("BOOTSTRAP_IP");
         if (bootstrap_ipSystem == null) {
