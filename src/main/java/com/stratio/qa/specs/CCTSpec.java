@@ -84,23 +84,29 @@ public class CCTSpec extends BaseGSpec {
         }
     }
 
-    @When("^I get (internal )?host ip for task '(.+?)' in service with id '(.+?)' from CCT and save the value in environment variable '(.+?)'$")
-    public void getHostIp(String internalIP, String taskName, String serviceId, String envVar) throws Exception {
+    @When("^I get (internal )?host ip for task '(.+?)'( in position '(\\d+)')? in service with id '(.+?)' from CCT and save the value in environment variable '(.+?)'$")
+    public void getHostIp(String internalIP, String taskName, Integer position, String serviceId, String envVar) throws Exception {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
         if (ThreadProperty.get("cct-marathon-services_id") == null) {
-            DeployedTask task = getServiceTaskFromDeployApi(serviceId, taskName);
+            DeployedTask task = position != null ? getServiceTaskFromDeployApi(serviceId, taskName, position) : getServiceTaskFromDeployApi(serviceId, taskName);
             Assert.assertNotNull(task, "Error obtaining IP");
             ThreadProperty.set(envVar, internalIP != null ? task.getCalicoIP() : task.getHost());
         } else {
-            DeployedServiceTask task = getServiceTaskFromCctMarathonService(serviceId, taskName);
+            DeployedServiceTask task = position != null ? getServiceTaskFromCctMarathonService(serviceId, taskName, position) : getServiceTaskFromCctMarathonService(serviceId, taskName);
             Assert.assertNotNull(task, "Error obtaining IP");
             ThreadProperty.set(envVar, internalIP != null ? task.getSecuredHost() : task.getHost());
         }
     }
 
+    @Deprecated
     public void getHostIp(String taskName, String serviceId, String envVar) throws Exception {
-        getHostIp(null, taskName, serviceId, envVar);
+        getHostIp(null, taskName, null, serviceId, envVar);
+    }
+
+    @Deprecated
+    public void getHostIp(String internalIP, String taskName, String serviceId, String envVar) throws Exception {
+        getHostIp(internalIP, taskName, null, serviceId, envVar);
     }
 
     private DeployedTask getServiceTaskFromDeployApi(String serviceId, String taskName) throws Exception {
@@ -111,11 +117,29 @@ public class CCTSpec extends BaseGSpec {
                 .findFirst().orElse(null);
     }
 
+    private DeployedTask getServiceTaskFromDeployApi(String serviceId, String taskName, int position) throws Exception {
+        DeployedApp app = this.commonspec.deployApiClient.getDeployedApp(serviceId);
+        return app.getTasks().stream()
+                .filter(task -> task.getState().equals(MesosTask.Status.TASK_RUNNING.toString()))
+                .filter(task -> task.getName().matches(taskName))
+                .skip(position)
+                .findFirst().orElse(null);
+    }
+
     private DeployedServiceTask getServiceTaskFromCctMarathonService(String serviceId, String taskName) throws Exception {
         DeployedService service = this.commonspec.cctMarathonServiceClient.getService(serviceId, 1, CCTSpec.MAX_TASKS);
         return service.getTasks().stream()
                 .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
                 .filter(task -> task.getName().matches(taskName))
+                .findFirst().orElse(null);
+    }
+
+    private DeployedServiceTask getServiceTaskFromCctMarathonService(String serviceId, String taskName, int position) throws Exception {
+        DeployedService service = this.commonspec.cctMarathonServiceClient.getService(serviceId, 1, CCTSpec.MAX_TASKS);
+        return service.getTasks().stream()
+                .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
+                .filter(task -> task.getName().matches(taskName))
+                .skip(position)
                 .findFirst().orElse(null);
     }
 
