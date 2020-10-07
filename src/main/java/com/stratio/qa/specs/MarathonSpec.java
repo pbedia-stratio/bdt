@@ -16,8 +16,11 @@
 
 package com.stratio.qa.specs;
 
-import com.stratio.qa.clients.marathon.MarathonApiClient;
+import com.stratio.qa.models.cct.deployApi.DeployedApp;
+import com.stratio.qa.models.cct.deployApi.DeployedTask;
+import com.stratio.qa.models.cct.marathonServiceApi.DeployedServiceTask;
 import com.stratio.qa.models.marathon.*;
+import com.stratio.qa.models.mesos.MesosTask;
 import com.stratio.qa.utils.ThreadProperty;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +29,7 @@ import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -243,5 +247,27 @@ public class MarathonSpec extends BaseGSpec {
                                 break;
             default:        throw new Exception("First param must be service or container");
         }
+    }
+
+    @When("^I get (internal )?host ip for task '(.+?)'( in position '(\\d+)')? in service with id '(.+?)' from Marathon and save the value in environment variable '(.+?)'$")
+    public void getHostIp(String internalIP, String taskName, Integer position, String serviceId, String envVar) throws Exception {
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+        position = position != null ? position : 0;
+        String ip = getHostIPFromMarathon(internalIP != null, serviceId, taskName, position);
+        Assert.assertNotNull(ip, "Error obtaining IP");
+        ThreadProperty.set(envVar, ip);
+    }
+
+    private String getHostIPFromMarathon(boolean internalIp, String serviceId, String taskName, int position) throws Exception {
+        AppResponse app = this.commonspec.marathonClient.getApp(serviceId);
+        Collection<Task> tasks = app.getApp().getTasks();
+        Task task = tasks.stream()
+                .filter(t -> t.getId().contains(taskName.replaceAll("\\.", "_")))
+                .filter(t -> t.getState().equals("TASK_RUNNING"))
+                .skip(position)
+                .findFirst()
+                .orElse(null);
+        return task != null ? internalIp ? task.getIpAddresses().stream().findFirst().get().getIpAddress() : task.getHost() : null;
     }
 }
