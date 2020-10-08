@@ -254,16 +254,16 @@ public class MarathonSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
         position = position != null ? position : 0;
-        String ip = getHostIPFromMarathon(internalIP != null, serviceId, taskName, position);
+        String ip = getHostIPFromMarathon(internalIP != null, serviceId, position);
         Assert.assertNotNull(ip, "Error obtaining IP");
         ThreadProperty.set(envVar, ip);
     }
 
-    private String getHostIPFromMarathon(boolean internalIp, String serviceId, String taskName, int position) throws Exception {
+    private String getHostIPFromMarathon(boolean internalIp, String serviceId, int position) throws Exception {
         AppResponse app = this.commonspec.marathonClient.getApp(serviceId);
         Collection<Task> tasks = app.getApp().getTasks();
         Task task = tasks.stream()
-                .filter(t -> t.getId().contains(taskName.replaceAll("\\.", "_")))
+                .filter(t -> t.getAppId().equals(serviceId))
                 .filter(t -> t.getState().equals("TASK_RUNNING"))
                 .skip(position)
                 .findFirst()
