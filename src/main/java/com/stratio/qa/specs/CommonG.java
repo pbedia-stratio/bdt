@@ -2547,7 +2547,7 @@ public class CommonG {
 
         if (loginInfo == null) {
             user = ThreadProperty.get("DCOS_USER");
-            password = System.getProperty("DCOS_PASSWORD");
+            password = ThreadProperty.get("DCOS_PASSWORD") != null ? ThreadProperty.get("DCOS_PASSWORD") : System.getProperty("DCOS_PASSWORD");
         } else {
             user = loginInfo.split(":")[0];
             password = loginInfo.split(":")[1];

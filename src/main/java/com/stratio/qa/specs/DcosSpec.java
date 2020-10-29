@@ -23,14 +23,18 @@ import com.stratio.qa.utils.GosecSSOUtils;
 import com.stratio.qa.utils.RemoteSSHConnection;
 import com.stratio.qa.utils.RemoteSSHConnectionsUtil;
 import com.stratio.qa.utils.ThreadProperty;
+import com.stratio.qa.utils.vaultansible.VaultAnsible;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.assertj.core.api.Assertions;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -954,7 +958,8 @@ public class DcosSpec extends BaseGSpec {
         }
 
         // Set sso token
-        setGoSecSSOCookie(null, null, ThreadProperty.get("EOS_ACCESS_POINT"), ThreadProperty.get("DCOS_USER"), System.getProperty("DCOS_PASSWORD"), ThreadProperty.get("DCOS_TENANT"), null);
+        String dcosPassword = ThreadProperty.get("DCOS_PASSWORD") != null ? ThreadProperty.get("DCOS_PASSWORD") : System.getProperty("DCOS_PASSWORD");
+        setGoSecSSOCookie(null, null, ThreadProperty.get("EOS_ACCESS_POINT"), ThreadProperty.get("DCOS_USER"), dcosPassword, ThreadProperty.get("DCOS_TENANT"), null);
         // Securely send requests
         commonspec.setRestProtocol("https://");
         commonspec.setRestHost(ThreadProperty.get("EOS_ACCESS_POINT"));
@@ -1089,6 +1094,10 @@ public class DcosSpec extends BaseGSpec {
         String commandUntar = "tar -C ./target/test-classes/ -xvf " + workspaceName + ".tgz";
         commandExecutionSpec.executeLocalCommand(commandUntar, null, null);
 
+        // Clean
+        String commandRmTgz = "rm " + workspaceName + ".tgz";
+        commandExecutionSpec.executeLocalCommand(commandRmTgz, null, null);
+
         // Obtain and export values
         String daedalusJson = commonspec.retrieveData(workspaceName + "/daedalus.json", "json");
         String varClusterSSHUser = "CLUSTER_SSH_USER";
@@ -1100,9 +1109,47 @@ public class DcosSpec extends BaseGSpec {
         String varClusterSSHPemPath = "CLUSTER_SSH_PEM_PATH";
         ThreadProperty.set(varClusterSSHPemPath, "./target/test-classes/" + workspaceName + "/key");
 
-        // Clean
-        String commandRmTgz = "rm " + workspaceName + ".tgz";
-        commandExecutionSpec.executeLocalCommand(commandRmTgz, null, null);
+        // Obtain secrets
+        String daedalusSecretsPass = System.getProperty("EOS_DAEDALUS_SECRETS_PASS");
+        if (daedalusSecretsPass == null) {
+            commonspec.getLogger().info("Secrets cannot be retrieved from workspace without EOS_DAEDALUS_SECRETS_PASS. DCOS_PASSWORD,LDAP_USER,LDAP_PASSWORD,DCOS_TENANT1,DCOS_TENANT1_OWNER_USER,DCOS_TENANT1_OWNER_PASSWORD,DCOS_TENANT1_OWNER_GROUP,DCOS_TENANT1_OWNER_POLICY_NAME,DCOS_TENANT2,DCOS_TENANT2_OWNER_USER,DCOS_TENANT2_OWNER_PASSWORD,DCOS_TENANT2_OWNER_GROUP and DCOS_TENANT2_OWNER_POLICY_NAME need to be provided.");
+            return;
+        }
+
+        String daedalusSecrets = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource(workspaceName + "/secrets.yml").getFile())));
+        String daedalusSecretsPassword = System.getProperty("EOS_DAEDALUS_SECRETS_PASS");
+
+        byte[] decryptedSecrets = VaultAnsible.decrypt(daedalusSecrets.getBytes(), daedalusSecretsPassword);
+        String decryptedString = new String(decryptedSecrets, StandardCharsets.UTF_8);
+
+        LinkedHashMap<String, Object> yamlMap = (LinkedHashMap<String, Object>) new Yaml().load(decryptedString);
+        LinkedHashMap<String, Object> yamlMapSecrets = (LinkedHashMap<String, Object>) yamlMap.get("secrets");
+
+        // LDAP secrets
+        LinkedHashMap<String, Object> yamlMapSecretsLdap = (LinkedHashMap<String, Object>) yamlMapSecrets.get("ldap");
+        LinkedHashMap<String, Object> yamlMapSecretsLdapAdmin = (LinkedHashMap<String, Object>) yamlMapSecretsLdap.get("admin");
+        LinkedHashMap<String, Object> yamlMapSecretsLdapSuperAdmin = (LinkedHashMap<String, Object>) yamlMapSecretsLdap.get("super_admin");
+        ThreadProperty.set("DCOS_PASSWORD", yamlMapSecretsLdapAdmin.get("pass").toString());
+        ThreadProperty.set("LDAP_USER", yamlMapSecretsLdapSuperAdmin.get("user").toString());
+        ThreadProperty.set("LDAP_PASSWORD", yamlMapSecretsLdapSuperAdmin.get("pass").toString());
+
+        // There can be custers without tenants info in secrets.yml
+        try {
+            // Tenants secrets
+            LinkedHashMap<String, Object> yamlTenants = (LinkedHashMap<String, Object>) yamlMapSecrets.get("qa_tenants");
+
+            yamlTenants.keySet().forEach(tenant -> {
+                LinkedHashMap<String, Object> yamlMapSecretsTenant = (LinkedHashMap<String, Object>) yamlTenants.get(tenant);
+                LinkedHashMap<String, Object> yamlMapSecretsTenantOwner = (LinkedHashMap<String, Object>) yamlMapSecretsTenant.get("owner");
+                ThreadProperty.set("DCOS_" + tenant.toUpperCase(), yamlMapSecretsTenant.get("id").toString());
+                ThreadProperty.set("DCOS_" + tenant.toUpperCase() + "_OWNER_USER", yamlMapSecretsTenantOwner.get("user").toString());
+                ThreadProperty.set("DCOS_" + tenant.toUpperCase() + "_OWNER_PASSWORD", yamlMapSecretsTenantOwner.get("pass").toString());
+                ThreadProperty.set("DCOS_" + tenant.toUpperCase() + "_OWNER_GROUP", yamlMapSecretsTenant.get("group").toString());
+                ThreadProperty.set("DCOS_" + tenant.toUpperCase() + "_OWNER_POLICY_NAME", yamlMapSecretsTenantOwner.get("policy_name").toString());
+            });
+        } catch (NullPointerException npe) {
+            commonspec.getLogger().info("Tenants secrets not stored in workspace.");
+        }
     }
 
     /**
@@ -1449,12 +1496,17 @@ public class DcosSpec extends BaseGSpec {
      * @throws Exception
      */
     private void getServicesInfoFromMarathonImpl() throws Exception {
-        if (System.getProperty("DCOS_PASSWORD") == null) {
+        if (System.getProperty("DCOS_PASSWORD") == null && ThreadProperty.get("DCOS_PASSWORD") == null) {
             throw new Exception("DCOS_PASSWORD should be defined when we use @dcos annotation");
+        } else if (System.getProperty("DCOS_PASSWORD") == null) {
+            System.setProperty("DCOS_PASSWORD", ThreadProperty.get("DCOS_PASSWORD"));
+        } else {
+            ThreadProperty.set("DCOS_PASSWORD", System.getProperty("DCOS_PASSWORD"));
         }
         String marathonEndPoint = "/service/marathon/v2/apps";
         // Set sso token
-        setGoSecSSOCookie(null, null, ThreadProperty.get("EOS_ACCESS_POINT"), ThreadProperty.get("DCOS_USER"), System.getProperty("DCOS_PASSWORD"), ThreadProperty.get("DCOS_TENANT"), null);
+        String dcosPassword = ThreadProperty.get("DCOS_PASSWORD") != null ? ThreadProperty.get("DCOS_PASSWORD") : System.getProperty("DCOS_PASSWORD");
+        setGoSecSSOCookie(null, null, ThreadProperty.get("EOS_ACCESS_POINT"), ThreadProperty.get("DCOS_USER"), dcosPassword, ThreadProperty.get("DCOS_TENANT"), null);
         // Securely send requests
         commonspec.setRestProtocol("https://");
         commonspec.setRestHost(ThreadProperty.get("EOS_ACCESS_POINT"));
