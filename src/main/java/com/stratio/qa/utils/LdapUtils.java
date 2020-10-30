@@ -52,13 +52,16 @@ public class LdapUtils {
     private String url;
 
     public LdapUtils() {
-        if (System.getProperty("LDAP_BASE") != null) {
-            this.queryUser = "cn=" + System.getProperty("LDAP_USER") + "," + System.getProperty("LDAP_BASE");
-        } else {
-            this.queryUser = "cn=" + System.getProperty("LDAP_USER") + "," + ThreadProperty.get("LDAP_BASE");
+        String ldapBase = System.getProperty("LDAP_BASE") != null ? System.getProperty("LDAP_BASE") : ThreadProperty.get("LDAP_BASE");
+        String ldapUser = System.getProperty("LDAP_USER") != null ? System.getProperty("LDAP_USER") : ThreadProperty.get("LDAP_USER");
+        String ldapPassword = System.getProperty("LDAP_PASSWORD") != null ? System.getProperty("LDAP_PASSWORD") : ThreadProperty.get("LDAP_PASSWORD");
+
+        if (ldapBase == null || ldapUser == null || ldapPassword == null) {
+            logger.info("Some of LDAP_BASE, LDAP_USER, LDAP_PASSWORD are missing. Make sure to set them or to use @dcos annotation");
         }
 
-        this.password = System.getProperty("LDAP_PASSWORD");
+        this.queryUser = "cn=" + ldapUser + "," + ldapBase;
+        this.password = ldapPassword;
         this.ssl = (System.getProperty("LDAP_SSL", "true")).equals("true") ? true : false;
         String ldapUrl = System.getProperty("LDAP_URL") != null ? System.getProperty("LDAP_URL") : ThreadProperty.get("LDAP_URL") != null ? ThreadProperty.get("LDAP_URL") : "";
         String ldapPort = System.getProperty("LDAP_PORT") != null ? System.getProperty("LDAP_PORT") : ThreadProperty.get("LDAP_PORT") != null ? ThreadProperty.get("LDAP_PORT") : "";
