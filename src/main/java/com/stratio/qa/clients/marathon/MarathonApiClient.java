@@ -19,9 +19,7 @@ package com.stratio.qa.clients.marathon;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.ning.http.client.Response;
 import com.stratio.qa.clients.BaseClient;
-import com.stratio.qa.models.marathon.AppResponse;
-import com.stratio.qa.models.marathon.AppsResponse;
-import com.stratio.qa.models.marathon.Volume;
+import com.stratio.qa.models.marathon.*;
 import com.stratio.qa.specs.CommonG;
 import com.stratio.qa.utils.ThreadProperty;
 
@@ -50,11 +48,56 @@ public class MarathonApiClient extends BaseClient {
         return map(response, AppsResponse.class);
     }
 
-    public AppResponse getApp(String appId) throws Exception {
+    public VersionedAppResponse getApp(String appId) throws Exception {
         String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps/");
         url = url.concat(appId);
 
         Response response = get(url);
+        return map(response, VersionedAppResponse.class);
+    }
+
+    public AppResponse addApp(String descriptor) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps");
+
+        Response response = post(url, descriptor);
         return map(response, AppResponse.class);
     }
+
+    public DeploymentResult updateApp(String appId, App app, boolean force) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps/");
+        url = url.concat(appId);
+        url = url.concat("?force=" + force);
+        String data = mapper.writeValueAsString(app);
+
+        Response response = put(url, data);
+        return map(response, DeploymentResult.class);
+    }
+
+    public DeploymentResult updateAppFromString(String appId, String data, boolean force) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps/");
+        url = url.concat(appId);
+        url = url.concat("?force=" + force);
+
+        Response response = put(url, data);
+        return map(response, DeploymentResult.class);
+    }
+
+    public DeploymentResult removeApp(String appId, boolean force) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps/");
+        url = url.concat(appId);
+        url = url.concat("?force=" + force);
+
+        Response response = delete(url);
+        return map(response, DeploymentResult.class);
+    }
+
+    public DeploymentResult restartApp(String appId, boolean force) throws Exception {
+        String url = "https://".concat(ThreadProperty.get("EOS_ACCESS_POINT")).concat(":" + getPort()).concat("/marathon/v2/apps/");
+        url = url.concat(appId).concat("/restart");
+        String data = "{\"force\": " + force + "}";
+
+        Response response = post(url, data);
+        return map(response, DeploymentResult.class);
+    }
+
 }

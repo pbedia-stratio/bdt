@@ -18,13 +18,11 @@ package com.stratio.qa.models.marathon;
 
 import com.stratio.qa.models.BaseResponse;
 
-import java.util.List;
+public class VersionedAppResponse extends BaseResponse {
 
-public class AppsResponse extends BaseResponse {
+    private VersionedApp app;
 
-    private List<VersionedApp> apps;
-
-    public List<VersionedApp> getApps() {
-        return apps;
+    public VersionedApp getApp() {
+        return app;
     }
 }
