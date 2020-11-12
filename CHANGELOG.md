@@ -10,8 +10,16 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [SPK-988] Fix runInAllNodes spec
 * [QATM-3515] Improve getHostIp method to obtain different IP's if service has multiple instances
 * [SAAS-2785] New step to get IP (internal and external) from Marathon instead of CCT
+* [ROCK-3086] New CucumberOptions with conditions
+* [FRAM-6100] Add convert yaml to json
+* [GS-2741] get correct timezone adding dates to policies
 * [SPK-1024] Changes in generateMesosLogPath method to read executor logs
 * [PQA-53] Fix modifyData method when first modification is a HEADER
+* [ROCK-3086] Add VaultAnsible decrypt
+* [PQA-55] Add secrets from daedalus to @dcos
+* [PQA-55] Improve LDAP connection
+* [ROCK-3086] Steps to modify, stop and start Marathon apps
+
 
 ## 0.19.1 (September 16, 2020)
 
