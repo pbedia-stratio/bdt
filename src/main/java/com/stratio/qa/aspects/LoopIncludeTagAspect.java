@@ -227,12 +227,15 @@ public class LoopIncludeTagAspect {
                 }
             }
             if (!scenarioexists) {
+                logger.warn("-> Scenario not present at the given feature: " + scenarioName);
                 throw new IncludeException("-> Scenario not present at the given feature: " + scenarioName);
             }
 
         } catch (FileNotFoundException e) {
+            logger.warn("-> Feature file were not found: " + feature);
             throw new IncludeException("-> Feature file were not found: " + feature);
         } catch (IOException e) {
+            logger.warn("-> An I/O error appeared [featureStepConverter].");
             throw new IncludeException("-> An I/O error appeared.");
         } finally {
             try {

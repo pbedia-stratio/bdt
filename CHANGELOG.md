@@ -19,7 +19,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [PQA-55] Add secrets from daedalus to @dcos
 * [PQA-55] Improve LDAP connection
 * [ROCK-3086] Steps to modify, stop and start Marathon apps
-
+* [QATM-3547] Warning trace added if include tag is wrong
 
 ## 0.19.1 (September 16, 2020)
 
