@@ -22,6 +22,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [QATM-3547] Warning trace added if include tag is wrong
 * [SPK-1075] Logs improvements. Get log by host / secured host of task
 * [SPK-1075] Fix error generating mesos log path
+* [DGPB-5171] Add moveToElement selenium function
 
 ## 0.19.1 (September 16, 2020)
 
