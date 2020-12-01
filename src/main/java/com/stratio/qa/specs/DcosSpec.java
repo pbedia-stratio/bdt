@@ -1483,9 +1483,9 @@ public class DcosSpec extends BaseGSpec {
      *
      * @throws Exception
      */
-    @Given("^I get services info from marathon")
-    public void getServicesInfoFromMarathon() throws Exception {
-        if (ThreadProperty.get("marathonVariables") == null) {
+    @Given("^I get services info from marathon( forcefully)?")
+    public void getServicesInfoFromMarathon(String force) throws Exception {
+        if (ThreadProperty.get("marathonVariables") == null || force != null) {
             getServicesInfoFromMarathonImpl();
         }
     }
