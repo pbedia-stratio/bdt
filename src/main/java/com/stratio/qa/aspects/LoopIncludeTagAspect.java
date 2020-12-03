@@ -183,6 +183,10 @@ public class LoopIncludeTagAspect {
 
     public String doReplaceKeys(String parsedFeature, String[] params) throws IncludeException {
         for (int i = 0; i < params.length; i++) {
+            //Scape '$' because it is a especial character
+            if (params[i + 1].startsWith("$")) {
+                params[i + 1] = "\\" + params[i + 1];
+            }
             parsedFeature = parsedFeature.replaceAll(params[i], params[i + 1]);
             i++;
         }
