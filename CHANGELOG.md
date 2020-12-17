@@ -4,7 +4,7 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 
 ## 0.21.0 (upcoming)
 
-* Pending changelog
+* Kubernetes support
 
 ## 0.20.0 (December 17, 2020)
 
@@ -27,6 +27,9 @@ Only listing significant user-visible, not internal code cleanups and minor bug 
 * [SPK-1075] Logs improvements. Get log by host / secured host of task
 * [SPK-1075] Fix error generating mesos log path
 * [DGPB-5171] Add moveToElement selenium function
+* [PQA-62] Allow forcing @dcos Marathon services refresh
+* [PQA-63]Fixed include tag aspect with params
+* [QATM-3568][QATM-3569] fix password generation through deploy-api and polling api requests
 
 ## 0.19.1 (September 16, 2020)
 
