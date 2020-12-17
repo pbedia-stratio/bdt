@@ -2,6 +2,10 @@
 
 Only listing significant user-visible, not internal code cleanups and minor bug fixes.
 
+## 0.21.0 (upcoming)
+
+* Pending changelog
+
 ## 0.20.0 (upcoming)
 
 * [CROSSDATA-2740] Fix get service/container port from Marathon API in DCOS 1.8
