@@ -103,11 +103,11 @@ public class KubernetesClient {
 
         // Untar workspace
         CommandExecutionSpec commandExecutionSpec = new CommandExecutionSpec(commonspec);
-        String commandUntar = "tar -C target/test-classes/ -xvf target/test-classes/" + workspaceName + ".tgz";
+        String commandUntar = "tar -C target/test-classes/ -xvf " + workspaceName + ".tgz";
         commandExecutionSpec.executeLocalCommand(commandUntar, null, null);
 
         // Clean
-        String commandRmTgz = "rm target/test-classes/" + workspaceName + ".tgz";
+        String commandRmTgz = "rm " + workspaceName + ".tgz";
         commandExecutionSpec.executeLocalCommand(commandRmTgz, null, null);
 
         // Obtain and export values
