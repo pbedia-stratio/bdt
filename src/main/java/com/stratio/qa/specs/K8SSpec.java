@@ -131,13 +131,13 @@ public class K8SSpec extends BaseGSpec {
         ThreadProperty.set(envVar, describeResponse);
     }
 
-    @When("^I run pod with name '(.+?)', in namespace '(.+?)', with image '(.+?)', restart policy '(.+?)', service account '(.+?)', command '(.+?)' and the following arguments:$")
-    public void runPod(String name, String namespace, String image, String restartPolicy, String serviceAccount, String command, DataTable arguments) {
+    @When("^I run pod with name '(.+?)', in namespace '(.+?)', with image '(.+?)'(, with image pull policy '(.+?)')?, restart policy '(.+?)', service account '(.+?)', command '(.+?)' and the following arguments:$")
+    public void runPod(String name, String namespace, String image, String imagePullPolicy, String restartPolicy, String serviceAccount, String command, DataTable arguments) {
         List<String> argumentsList = new ArrayList<>();
         for (int i = 0; i < arguments.column(0).size(); i++) {
             argumentsList.add(arguments.cell(i, 0));
         }
-        commonspec.kubernetesClient.runPod(name, namespace, image, restartPolicy, serviceAccount, command, argumentsList);
+        commonspec.kubernetesClient.runPod(name, namespace, image, imagePullPolicy, restartPolicy, serviceAccount, command, argumentsList);
     }
 
     @When("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, pod with name '(.+?)' in namespace '(.+?)' has '(running|failed|succeeded)' status( and '(ready|not ready)' state)?$")
@@ -212,9 +212,9 @@ public class K8SSpec extends BaseGSpec {
         }
     }
 
-    @When("^I create deployment with name '(.+?)', in namespace '(.+?)', with image '(.+?)'$")
-    public void createDeployment(String name, String namespace, String image) {
-        commonspec.kubernetesClient.createDeployment(name, namespace, image);
+    @When("^I create deployment with name '(.+?)', in namespace '(.+?)', with image '(.+?)'( and image pull policy '(.+?)')?$")
+    public void createDeployment(String name, String namespace, String image, String imagePullPolicy) {
+        commonspec.kubernetesClient.createDeployment(name, namespace, image, imagePullPolicy);
     }
 
     @When("^I expose deployment with name '(.+?)', in namespace '(.+?)' in port '(\\d+)'$")
