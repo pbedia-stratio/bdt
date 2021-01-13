@@ -33,6 +33,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
 import io.fabric8.kubernetes.client.extended.run.RunConfigBuilder;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import okhttp3.Response;
@@ -212,6 +213,27 @@ public class KubernetesClient {
         k8sClient.load(new FileInputStream(file))
                 .inNamespace(namespace)
                 .createOrReplace();
+    }
+
+    /**
+     * kubectl apply -f yamlOrJsonFile.yml
+     * Using a custom resource
+     *
+     * @param file
+     * @param namespace
+     * @throws FileNotFoundException
+     */
+    public void createOrReplaceCustomResource(String file, String namespace, String version, String plural, String kind, String name, String scope, String group) throws IOException {
+        CustomResourceDefinitionContext customResourceDefinitionContext = new CustomResourceDefinitionContext.Builder()
+                .withVersion(version)
+                .withPlural(plural)
+                .withKind(kind)
+                .withName(name)
+                .withScope(scope)
+                .withGroup(group)
+                .build();
+        Map<String, Object> myObject = k8sClient.customResource(customResourceDefinitionContext).load(new FileInputStream(file));
+        k8sClient.customResource(customResourceDefinitionContext).create(namespace, myObject);
     }
 
     /**
