@@ -60,7 +60,7 @@ public class K8SSpec extends BaseGSpec {
         commonspec.kubernetesClient.connect(kubeConfigPath);
     }
 
-    @When("^I get (pods|configmaps|serviceaccounts|replicasets|secrets|clusterroles|clusterrolebindings|statefulsets|roles|rolebindings)( in namespace '(.+?)')? and save it in environment variable '(.+?)'$")
+    @When("^I get (pods|configmaps|serviceaccounts|replicasets|secrets|clusterroles|clusterrolebindings|statefulsets|roles|rolebindings|customresourcedefinitions|deployments)( in namespace '(.+?)')? and save it in environment variable '(.+?)'$")
     public void getList(String type, String namespace, String envVar) {
         String response = null;
         switch (type) {
@@ -84,6 +84,10 @@ public class K8SSpec extends BaseGSpec {
                             break;
             case "rolebindings":    response = commonspec.kubernetesClient.getRoleBindingList(namespace);
                                     break;
+            case "customresourcedefinitions":    response = commonspec.kubernetesClient.getCustomResourceDefinitionList();
+                                                break;
+            case "deployments":    response = commonspec.kubernetesClient.getDeploymentList(namespace);
+                                  break;
             default:
         }
         ThreadProperty.set(envVar, response);

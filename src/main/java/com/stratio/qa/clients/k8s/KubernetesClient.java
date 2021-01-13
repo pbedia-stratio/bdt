@@ -21,6 +21,7 @@ import com.stratio.qa.specs.CommandExecutionSpec;
 import com.stratio.qa.specs.CommonG;
 import com.stratio.qa.utils.ThreadProperty;
 import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.apiextensions.v1beta1.CustomResourceDefinition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.api.model.apps.ReplicaSet;
@@ -758,6 +759,36 @@ public class KubernetesClient {
         StringBuilder result = new StringBuilder();
         for (RoleBinding roleBinding : k8sClient.rbac().roleBindings().inNamespace(namespace).list().getItems()) {
             result.append(roleBinding.getMetadata().getName()).append("\n");
+        }
+        return result.length() > 0 ? result.substring(0, result.length() - 1) : result.toString();
+    }
+
+    /**
+
+    /**
+     * Get customresourcedefinition list
+     *
+     * @return customresourcedefinition list
+     */
+
+    public String getCustomResourceDefinitionList() {
+        StringBuilder result = new StringBuilder();
+        for (CustomResourceDefinition customResourceDefinition : k8sClient.customResourceDefinitions().list().getItems()) {
+            result.append(customResourceDefinition.getMetadata().getName()).append("\n");
+        }
+        return result.length() > 0 ? result.substring(0, result.length() - 1) : result.toString();
+    }
+    /**
+     * Get deployment list in selected namespace
+     *
+     * @param namespace Namespace
+     * @return deployment list
+     */
+
+    public String getDeploymentList(String namespace) {
+        StringBuilder result = new StringBuilder();
+        for (Deployment deployment : k8sClient.apps().deployments().inNamespace(namespace).list().getItems()) {
+            result.append(deployment.getMetadata().getName()).append("\n");
         }
         return result.length() > 0 ? result.substring(0, result.length() - 1) : result.toString();
     }
