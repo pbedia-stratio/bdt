@@ -325,7 +325,6 @@ public class HookGSpec extends BaseGSpec {
     public void keosSetup() throws Exception {
         if (ThreadProperty.get("CLUSTER_KUBE_CONFIG_PATH") == null) {
             commonspec.kubernetesClient.getK8sConfigFromWorkspace(commonspec);
-            commonspec.kubernetesClient.connect(ThreadProperty.get("CLUSTER_KUBE_CONFIG_PATH"));
         }
     }
 

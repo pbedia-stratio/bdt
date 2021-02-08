@@ -117,6 +117,17 @@ public class KubernetesClient {
         ThreadProperty.set("CLUSTER_SSH_USER", commonspec.getJSONPathString(daedalusJson, "$.infra.ssh_user", null).replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\"", ""));
         ThreadProperty.set("CLUSTER_SSH_PEM_PATH", "./target/test-classes/" + workspaceName + "/key");
         ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", "./target/test-classes/" + workspaceName + "/.kube/config");
+
+        // Connect to Kubernetes
+        getInstance().connect(ThreadProperty.get("CLUSTER_KUBE_CONFIG_PATH"));
+
+        // Vault values
+        String vaultRoot = new JSONObject(commonspec.convertYamlStringToJson(getInstance().describeSecret("vault-unseal-keys", "keos-core"))).getJSONObject("data").getString("vault-root");
+        commonspec.runLocalCommand("echo " + vaultRoot + " | base64 -d");
+        commonspec.runCommandLoggerAndEnvVar(0, "VAULT_TOKEN", Boolean.TRUE);
+        ThreadProperty.set("VAULT_HOST", "127.0.0.1");
+        String serviceJson = commonspec.convertYamlStringToJson(getInstance().describeServiceYaml("vault", "keos-core"));
+        ThreadProperty.set("VAULT_PORT", commonspec.getJSONPathString(serviceJson, "$.spec.ports[0].port", null).replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\"", ""));
     }
 
     /**

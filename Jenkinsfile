@@ -97,7 +97,7 @@ hose {
         | -DLDAP_SSL=false
         | -DVAULT_URL=%%VAULT
         | -DVAULT_PROTOCOL=http://
-        | -DEOS_VAULT_HOST=%%VAULT
+        | -DVAULT_HOST=%%VAULT
         | -DVAULT_TOKEN=stratio
         | -DLDAP_URL=%%LDAP
         | -DINCLUDE=1
