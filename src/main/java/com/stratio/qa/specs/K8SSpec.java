@@ -28,10 +28,11 @@ import io.cucumber.datatable.DataTable;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import org.json.JSONObject;
 import org.testng.Assert;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +68,7 @@ public class K8SSpec extends BaseGSpec {
         commonspec.kubernetesClient.connect(kubeConfigPath);
     }
 
-    @When("^I get (pods|configmaps|serviceaccounts|replicasets|secrets|clusterroles|clusterrolebindings|statefulsets|roles|rolebindings|customresourcedefinitions|deployments|services)( in namespace '(.+?)')? and save it in environment variable '(.+?)'$")
+    @When("^I get (pods|configmaps|serviceaccounts|replicasets|secrets|clusterroles|clusterrolebindings|statefulsets|roles|rolebindings|customresourcedefinitions|deployments|services|ingress)( in namespace '(.+?)')? and save it in environment variable '(.+?)'$")
     public void getList(String type, String namespace, String envVar) {
         String response = null;
         switch (type) {
@@ -110,6 +111,9 @@ public class K8SSpec extends BaseGSpec {
             case "services":
                 response = commonspec.kubernetesClient.getServiceList(namespace);
                 break;
+            case "ingress":
+                response = commonspec.kubernetesClient.getIngressList(namespace);
+                break;
             default:
         }
         ThreadProperty.set(envVar, response);
@@ -125,7 +129,7 @@ public class K8SSpec extends BaseGSpec {
         assertThat(commonspec.kubernetesClient.checkEventNamespace(not, namespace, type, name, reason, message)).as("There aren't event that contains the message " + message + " in namespace " + namespace).isTrue();
     }
 
-    @When("^I describe (pod|service|deployment|configmap|replicaset|serviceaccount|secret|clusterrole|clusterrolebinding|statefulset|role|rolebinding) with name '(.+?)'( in namespace '(.+?)')?( in '(yaml|json)' format)?( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
+    @When("^I describe (pod|service|deployment|configmap|replicaset|serviceaccount|secret|clusterrole|clusterrolebinding|statefulset|role|rolebinding|ingress) with name '(.+?)'( in namespace '(.+?)')?( in '(yaml|json)' format)?( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
     public void describeResource(String type, String name, String namespace, String format, String envVar, String fileName) throws Exception {
         String describeResponse;
         format = (format != null) ? format : "yaml";
@@ -165,6 +169,9 @@ public class K8SSpec extends BaseGSpec {
                 break;
             case "rolebinding":
                 describeResponse = commonspec.kubernetesClient.describeRoleBinding(name, namespace);
+                break;
+            case "ingress":
+                describeResponse = commonspec.kubernetesClient.describeIngress(name, namespace);
                 break;
             default:
                 describeResponse = null;
@@ -494,38 +501,5 @@ public class K8SSpec extends BaseGSpec {
     @Then("^I close port forward$")
     public void closePortForward() throws IOException {
         commonspec.kubernetesClient.closePortForward();
-    }
-
-    /**
-     * Generate token to authenticate in gosec SSO in Keos
-     *
-     * @param ssoHost  : current sso host
-     * @param userName : username
-     * @param password : password
-     * @param tenant   : tenant
-     * @throws Exception exception
-     */
-    @Given("^I set sso keos token using host '(.+?)' with user '(.+?)', password '(.+?)' and tenant '(.+?)'$")
-    public void setGoSecSSOCookieKeos(String ssoHost, String userName, String password, String tenant) throws Exception {
-        GosecSSOUtils ssoUtils = new GosecSSOUtils(ssoHost + "/service/cct-ui/", userName, password, tenant, null);
-        ssoUtils.setVerifyHost(false);
-        HashMap<String, String> ssoCookies = ssoUtils.ssoTokenGenerator(false);
-        String[] tokenList = {"_oauth2_proxy"};
-        List<com.ning.http.client.cookie.Cookie> cookiesAtributes = commonspec.addSsoToken(ssoCookies, tokenList);
-        commonspec.setCookies(cookiesAtributes);
-        RestSpec restSpec = new RestSpec(commonspec);
-        restSpec.setupRestClient("securely", ssoHost, ":443");
-        restSpec.sendRequestNoDataTable("GET", "/service/cct-ui/", null, null, null);
-        for (com.ning.http.client.cookie.Cookie cookie : commonspec.getResponse().getCookies()) {
-            if (cookie.getName().equals("stratio-cookie")) {
-                cookiesAtributes.add(cookie);
-                break;
-            }
-        }
-        this.commonspec.getLogger().debug("Cookies to set:");
-        for (String cookie : tokenList) {
-            this.commonspec.getLogger().debug("\t" + cookie + ":" + ssoCookies.get(cookie));
-        }
-        commonspec.setCookies(cookiesAtributes);
     }
 }
