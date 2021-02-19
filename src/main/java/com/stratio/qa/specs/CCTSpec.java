@@ -1999,7 +1999,7 @@ public class CCTSpec extends BaseGSpec {
         String pathAux = path != null ? path.replaceAll("/", "%2F") + secret : "%2Fuserland%2Fkerberos%2F" + secret;
         String principalAux = principal != null ? principal : secret;
         String nameAux = name != null ? name : secret;
-        String realmAux = realm != null ? realm : ThreadProperty.get("isKeosEnv").equals("true") ? ThreadProperty.get("KEOS_REALM") : ThreadProperty.get("EOS_REALM");
+        String realmAux = realm != null ? realm : ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true") ? ThreadProperty.get("KEOS_REALM") : ThreadProperty.get("EOS_REALM");
         if (realmAux == null) {
             throw new Exception("Realm is mandatory to generate keytab");
         }
