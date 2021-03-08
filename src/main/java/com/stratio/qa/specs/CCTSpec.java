@@ -127,6 +127,14 @@ public class CCTSpec extends BaseGSpec {
                 .findFirst().orElse(null);
     }
 
+    private DeployedTask getServiceTaskHostFromDeployApi(String serviceId, String host) throws Exception {
+        DeployedApp app = this.commonspec.deployApiClient.getDeployedApp(serviceId);
+        return app.getTasks().stream()
+                .filter(task -> task.getState().equals(MesosTask.Status.TASK_RUNNING.toString()))
+                .filter(task -> task.getHost().matches(host))
+                .findFirst().orElse(null);
+    }
+
     private DeployedServiceTask getServiceTaskFromCctMarathonService(String serviceId, String taskName) throws Exception {
         DeployedService service = this.commonspec.cctMarathonServiceClient.getService(serviceId, 1, CCTSpec.MAX_TASKS);
         return service.getTasks().stream()
@@ -141,6 +149,14 @@ public class CCTSpec extends BaseGSpec {
                 .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
                 .filter(task -> task.getName().matches(taskName))
                 .skip(position)
+                .findFirst().orElse(null);
+    }
+
+    private DeployedServiceTask getServiceTaskHostFromCctMarathonService(String serviceId, String host) throws Exception {
+        DeployedService service = this.commonspec.cctMarathonServiceClient.getService(serviceId, 1, CCTSpec.MAX_TASKS);
+        return service.getTasks().stream()
+                .filter(task -> task.getStatus().equals(TaskStatus.RUNNING))
+                .filter(task -> task.getHost().matches(host))
                 .findFirst().orElse(null);
     }
 
@@ -307,8 +323,15 @@ public class CCTSpec extends BaseGSpec {
             TaskStatus expectedTaskStatus = taskState == null && !taskAttrType.equals("ID") ? TaskStatus.RUNNING : null;
             logPath = getLogPathFromMarathonServices(logType, service, taskAttr, expectedTaskStatus, position, taskAttrType);
         }
-        if (taskAttrType.equals("ID") && logPath == null) {
-            logPath = generateMesosLogPath(taskAttr, logType);
+        if (logPath == null) {
+            if (taskAttrType.equals("ID")) {
+                logPath = generateMesosLogPath(taskAttr, logType);
+            } else {
+                String id = ThreadProperty.get("cct-marathon-services_id") == null ? getServiceTaskHostFromDeployApi(service, taskAttr).getId() : getServiceTaskHostFromCctMarathonService(service, taskAttr).getId();
+                if (id != null) {
+                    logPath = generateMesosLogPath(id, logType);
+                }
+            }
         }
         if (logPath == null) {
             return null;
