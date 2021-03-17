@@ -611,6 +611,33 @@ public class KubernetesClient {
     }
 
     /**
+     * kubectl run xxx --image=xxx --restart=xxx --serviceaccount=xxx --namespace=xxx --command -- mycommand
+     *
+     * @param podName Pod name
+     * @param namespace Namespace
+     * @param image Image
+     * @param imagePullPolicy Image pull policy (IfNotPresent as default value)
+     * @param restartPolicy Restart policy
+     * @param serviceAccount Service Account
+     * @param env Environment variables
+     * @param command Command to execute
+     * @param args Command arguments
+     */
+    public void runPod(String podName, String namespace, String image, String imagePullPolicy, String restartPolicy, String serviceAccount, Map<String, String> env, String command, List<String> args) {
+        imagePullPolicy = imagePullPolicy != null ? imagePullPolicy : "IfNotPresent";
+        RunConfigBuilder runConfig = new RunConfigBuilder()
+                .withName(podName)
+                .withImage(image)
+                .withImagePullPolicy(imagePullPolicy)
+                .withRestartPolicy(restartPolicy)
+                .withServiceAccount(serviceAccount)
+                .withCommand(command)
+                .withEnv(env)
+                .withArgs(args);
+        k8sClient.run().inNamespace(namespace).withName(podName).withImage(image).withRunConfig(runConfig.build()).done();
+    }
+
+    /**
      * kubectl delete pod mypod
      *
      * @param pod Pod to delete

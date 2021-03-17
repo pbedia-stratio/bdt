@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -218,13 +219,24 @@ public class K8SSpec extends BaseGSpec {
         }
     }
 
-    @When("^I run pod with name '(.+?)', in namespace '(.+?)', with image '(.+?)'(, with image pull policy '(.+?)')?, restart policy '(.+?)', service account '(.+?)', command '(.+?)' and the following arguments:$")
-    public void runPod(String name, String namespace, String image, String imagePullPolicy, String restartPolicy, String serviceAccount, String command, DataTable arguments) {
+    @When("^I run pod with name '(.+?)', in namespace '(.+?)', with image '(.+?)'(, with image pull policy '(.+?)')?, restart policy '(.+?)', service account '(.+?)',( environment variables '(.+?)',)? command '(.+?)' and the following arguments:$")
+    public void runPod(String name, String namespace, String image, String imagePullPolicy, String restartPolicy, String serviceAccount, String envVars, String command, DataTable arguments) {
         List<String> argumentsList = new ArrayList<>();
         for (int i = 0; i < arguments.column(0).size(); i++) {
             argumentsList.add(arguments.cell(i, 0));
         }
-        commonspec.kubernetesClient.runPod(name, namespace, image, imagePullPolicy, restartPolicy, serviceAccount, command, argumentsList);
+        if (envVars == null) {
+            commonspec.kubernetesClient.runPod(name, namespace, image, imagePullPolicy, restartPolicy, serviceAccount, command, argumentsList);
+        } else {
+            Map<String, String> env = new HashMap<>();
+            String[] envVarsList = envVars.split(",");
+            for (String envVar : envVarsList) {
+                String key = envVar.split("=")[0];
+                String value = envVar.split("=")[1];
+                env.put(key, value);
+            }
+            commonspec.kubernetesClient.runPod(name, namespace, image, imagePullPolicy, restartPolicy, serviceAccount, env, command, argumentsList);
+        }
     }
 
     @When("^in less than '(\\d+)' seconds, checking each '(\\d+)' seconds, pod with name '(.+?)' in namespace '(.+?)' has '(running|failed|succeeded)' status( and '(ready|not ready)' state)?$")
