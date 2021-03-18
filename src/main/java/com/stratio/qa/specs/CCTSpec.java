@@ -1232,7 +1232,11 @@ public class CCTSpec extends BaseGSpec {
 
         if (envVar != null || fileName != null) {
             KeosSpec keosSpec = new KeosSpec(commonspec);
-            keosSpec.convertDescriptorToK8sJsonSchema(json, envVar, fileName);
+            JSONObject jsonSchema = new JSONObject();
+            jsonSchema.put("service", service);
+            jsonSchema.put("model", model);
+            jsonSchema.put("version", version);
+            keosSpec.convertDescriptorToK8sJsonSchema(json, jsonSchema.toString(), envVar, fileName);
         }
     }
 
@@ -1392,7 +1396,7 @@ public class CCTSpec extends BaseGSpec {
      * @param tenant  : tenant where service is installed
      * @throws Exception
      */
-    @Given("^I uninstall service '(.+?)' from tenant '(.+?)' with schema located at file '(.+?)'$")
+    @Given("^I uninstall deployment '(.+?)' from tenant '(.+?)' with schema located at file '(.+?)'$")
     public void uninstallServiceKeos(String service, String tenant, String jsonFile) throws Exception {
         JSONObject schemaJson = new JSONObject(this.commonspec.retrieveData(jsonFile, "json"));
         schemaJson.put("applicationId", service + "." + tenant);
@@ -1401,8 +1405,8 @@ public class CCTSpec extends BaseGSpec {
         commonspec.setCCTConnection(null, null);
 
         String endPoint = "/service/cct-orchestrator-service/v1/uninstall?tenant=" + tenant;
-        Future<Response> response = commonspec.generateRequest("DELETE", true, null, null, endPoint, schemaJson.toString(), "json");
-        commonspec.setResponse("DELETE", response.get());
+        Future<Response> response = commonspec.generateRequest("POST", true, null, null, endPoint, schemaJson.toString(), "json");
+        commonspec.setResponse("POST", response.get());
 
         if (commonspec.getResponse().getStatusCode() != 202 && commonspec.getResponse().getStatusCode() != 200) {
             logger.error("Request to endpoint: " + endPoint + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
