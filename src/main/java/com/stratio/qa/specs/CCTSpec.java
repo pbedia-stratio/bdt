@@ -1563,6 +1563,39 @@ public class CCTSpec extends BaseGSpec {
      */
     @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')? with:$")
     public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile, DataTable modifications) throws Exception {
+        if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
+            updateCCTServiceKeos(tenant, jsonFile, modifications);
+        } else {
+            updateCCTServiceDcos(serviceName, folder, tenant, version, jsonFile, modifications);
+        }
+    }
+
+    private void updateCCTServiceKeos(String tenant, String jsonFile, DataTable modifications) throws Exception {
+        // Set REST connection
+        commonspec.setCCTConnection(null, null);
+
+        String endPoint = "/service/cct-orchestrator-service/v1/update?tenant=" + tenant;
+        String data = this.commonspec.retrieveData(jsonFile, "json");
+
+        String modifiedData;
+        if (modifications != null) {
+            modifiedData = commonspec.modifyData(data, "json", modifications);
+        } else {
+            modifiedData = data;
+        }
+
+        Future<Response> response = commonspec.generateRequest("POST", true, null, null, endPoint, modifiedData, "json");
+        commonspec.setResponse("POST", response.get());
+
+        if (commonspec.getResponse().getStatusCode() != 200) {
+            logger.error("Request to endpoint: " + endPoint + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
+            throw new Exception("Request to endpoint: " + endPoint + " failed with status code: " + commonspec.getResponse().getStatusCode() + " and response: " + commonspec.getResponse().getResponse());
+        }
+
+        //TODO Check application status in KEOS
+    }
+
+    private void updateCCTServiceDcos(String serviceName, String folder, String tenant, String version, String jsonFile, DataTable modifications) throws Exception {
         Assert.assertNotNull(ThreadProperty.get("deploy_api_id"), "deploy_api_id variable is not set. Check deploy-api is installed and @dcos annotation is working properly.");
 
         // obtain service name
