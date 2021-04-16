@@ -537,4 +537,9 @@ public class K8SSpec extends BaseGSpec {
     public void closePortForward() throws IOException {
         commonspec.kubernetesClient.closePortForward();
     }
+
+    @When("^I set maxReplicas='(\\d+)' in deployment with name '(.+?)' in namespace '(.+?)'$")
+    public void setMaxReplicas(Integer maxReplicas, String name, String namespace) {
+        commonspec.kubernetesClient.updateHorizontalAutoscaler(namespace, name, maxReplicas);
+    }
 }

@@ -1361,6 +1361,17 @@ public class KubernetesClient {
         localPortForward = null;
     }
 
+    /**
+     * kubectl patch hpa <deployment> -n <namespace> -p '{"spec":{"maxReplicas": <number>}}'
+     *
+     * @param namespace Namespace
+     * @param name Deployment name
+     * @param maxReplicas Max replicas
+     */
+    public void updateHorizontalAutoscaler(String namespace, String name, int maxReplicas) {
+        k8sClient.autoscaling().v1().horizontalPodAutoscalers().inNamespace(namespace).withName(name).edit().editSpec().withMaxReplicas(maxReplicas).endSpec().done();
+    }
+
     private static class MyPodExecListener implements ExecListener {
         @Override
         public void onOpen(Response response) {
