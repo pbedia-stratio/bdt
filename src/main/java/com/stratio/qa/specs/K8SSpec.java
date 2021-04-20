@@ -406,6 +406,17 @@ public class K8SSpec extends BaseGSpec {
         }
     }
 
+    @When("^I execute the command defined in datatable in pod with name '(.+?)' in namespace '(.+?)'( and save it in environment variable '(.+?)')?( and save it in file '(.*?)')?:$")
+    public void runCommandInPodDatatable(String name, String namespace, String envVar, String fileName, DataTable dataTable) throws Exception {
+        String result = commonspec.kubernetesClient.execCommand(name, namespace, dataTable.asList().toArray(new String[0]));
+        if (envVar != null) {
+            ThreadProperty.set(envVar, result);
+        }
+        if (fileName != null) {
+            writeInFile(result, fileName);
+        }
+    }
+
     @When("^I apply configuration file located at '(.+?)' in namespace '(.+?)'$")
     public void applyConfiguration(String yamlFile, String namespace) throws FileNotFoundException {
         commonspec.kubernetesClient.createOrReplaceResource(yamlFile, namespace);
@@ -520,26 +531,53 @@ public class K8SSpec extends BaseGSpec {
         ThreadProperty.set(envVar, commonspec.kubernetesClient.getPodsFilteredByField(selector, namespace));
     }
 
-    @Given("^I forward containerPort '(\\d+)' in localhostPort '(\\d+)' for (pod|service) '(.+?)'( in namespace '(.+?)')?$")
+    // TODO Remove in future (added to avoid compile errors in qa-unified-tests)
     public void setLocalPortForward(Integer containerPort, Integer localhostPort, String type, String name, String namespace) {
+        setLocalPortForward(containerPort, localhostPort, type, name, namespace, null);
+    }
+
+    @Given("^I forward containerPort '(\\d+)' in localhostPort '(\\d+)' for (pod|service) '(.+?)'( in namespace '(.+?)')?( with id '(.+?)')?$")
+    public void setLocalPortForward(Integer containerPort, Integer localhostPort, String type, String name, String namespace, String id) {
+        id = id != null ? id : name + "_" + namespace + "_" + containerPort + "_" + localhostPort;
         switch (type) {
             case "pod":
-                commonspec.kubernetesClient.setLocalPortForwardPod(namespace, name, containerPort, localhostPort);
+                commonspec.kubernetesClient.setLocalPortForwardPod(namespace, name, containerPort, localhostPort, id);
                 break;
             case "service":
-                commonspec.kubernetesClient.setLocalPortForwardService(namespace, name, containerPort, localhostPort);
+                commonspec.kubernetesClient.setLocalPortForwardService(namespace, name, containerPort, localhostPort, id);
                 break;
             default:
         }
     }
 
-    @Then("^I close port forward$")
+    // TODO Remove in future (added to avoid compile errors in qa-unified-tests)
     public void closePortForward() throws IOException {
-        commonspec.kubernetesClient.closePortForward();
+        closePortForward(null);
+    }
+
+    @Then("^I close port forward( with id '(.+?)')?$")
+    public void closePortForward(String id) throws IOException {
+        commonspec.kubernetesClient.closePortForward(id);
     }
 
     @When("^I set maxReplicas='(\\d+)' in deployment with name '(.+?)' in namespace '(.+?)'$")
     public void setMaxReplicas(Integer maxReplicas, String name, String namespace) {
         commonspec.kubernetesClient.updateHorizontalAutoscaler(namespace, name, maxReplicas);
+    }
+
+    /**
+     * kubectl cp /tmp/foo <some-namespace>/<some-pod>:/tmp/bar
+     */
+    @Given("^I outbound copy '(.+?)' to '(.+?)' in pod '(.+?)' in namespace '(.+?)'$")
+    public void copyToRemoteFile(String localPath, String remotePath, String podName, String namespace)  {
+        commonspec.kubernetesClient.copyFileToPod(podName, namespace, localPath, remotePath);
+    }
+
+    /**
+     * kubectl cp <some-namespace>/<some-pod>:/tmp/foo /tmp/bar
+     */
+    @Given("^I inbound copy '(.+?)' to '(.+?)' in pod '(.+?)' in namespace '(.+?)'$")
+    public void copyFromRemoteFile(String remotePath, String localPath, String podName, String namespace) {
+        commonspec.kubernetesClient.copyFileFromPod(podName, namespace, remotePath, localPath);
     }
 }

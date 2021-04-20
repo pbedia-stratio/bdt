@@ -31,7 +31,6 @@ import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
-import io.fabric8.kubernetes.client.dsl.internal.RawCustomResourceOperationsImpl;
 import io.fabric8.kubernetes.client.extended.run.RunConfigBuilder;
 import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import okhttp3.Response;
@@ -58,6 +57,10 @@ public class KubernetesClient {
     private static io.fabric8.kubernetes.client.KubernetesClient k8sClient;
 
     private static LocalPortForward localPortForward;
+
+    private static Map<String, LocalPortForward> localPortForwardMap = new HashMap<>();
+
+    private static String localPortForwardId;
 
     private static CountDownLatch execLatch = new CountDownLatch(1);
 
@@ -576,7 +579,7 @@ public class KubernetesClient {
                 .usingListener(new MyPodExecListener())
                 .exec(command);
 
-        boolean latchTerminationStatus = execLatch.await(5, TimeUnit.SECONDS);
+        boolean latchTerminationStatus = execLatch.await(30, TimeUnit.SECONDS);
         if (!latchTerminationStatus) {
             logger.warn("Latch could not terminate within specified time");
         }
@@ -1338,8 +1341,10 @@ public class KubernetesClient {
      * @param localHostPort local host port
      */
 
-    public void setLocalPortForwardService(String namespace, String name, int containerPort, int localHostPort) {
+    public void setLocalPortForwardService(String namespace, String name, int containerPort, int localHostPort, String localPortForwardId) {
         localPortForward = k8sClient.services().inNamespace(namespace).withName(name).portForward(containerPort, localHostPort);
+        localPortForwardMap.put(localPortForwardId, localPortForward);
+        this.localPortForwardId = localPortForwardId;
     }
 
     /**
@@ -1350,15 +1355,25 @@ public class KubernetesClient {
      * @param containerPort container port
      * @param localHostPort local host port
      */
-    public void setLocalPortForwardPod(String namespace, String name, int containerPort, int localHostPort) {
+    public void setLocalPortForwardPod(String namespace, String name, int containerPort, int localHostPort, String localPortForwardId) {
         localPortForward = k8sClient.pods().inNamespace(namespace).withName(name).portForward(containerPort, localHostPort);
+        localPortForwardMap.put(localPortForwardId, localPortForward);
+        this.localPortForwardId = localPortForwardId;
     }
 
-    public void closePortForward() throws IOException {
+    public void closePortForward(String id) throws IOException {
+        if (id != null) {
+            localPortForward = localPortForwardMap.get(id);
+            this.localPortForwardId = id;
+        }
         if (localPortForward != null && localPortForward.isAlive()) {
             localPortForward.close();
         }
         localPortForward = null;
+        if (localPortForwardId != null) {
+            localPortForwardMap.remove(this.localPortForwardId);
+        }
+        this.localPortForwardId = null;
     }
 
     /**
@@ -1370,6 +1385,14 @@ public class KubernetesClient {
      */
     public void updateHorizontalAutoscaler(String namespace, String name, int maxReplicas) {
         k8sClient.autoscaling().v1().horizontalPodAutoscalers().inNamespace(namespace).withName(name).edit().editSpec().withMaxReplicas(maxReplicas).endSpec().done();
+    }
+
+    public void copyFileToPod(String podName, String namespace, String filePath, String destinationPath) {
+        k8sClient.pods().inNamespace(namespace).withName(podName).file(destinationPath).upload(Paths.get(filePath));
+    }
+
+    public void copyFileFromPod(String podName, String namespace, String filePath, String destinationPath) {
+        k8sClient.pods().inNamespace(namespace).withName(podName).file(destinationPath).copy(Paths.get(filePath));
     }
 
     private static class MyPodExecListener implements ExecListener {
