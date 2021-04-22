@@ -299,7 +299,7 @@ public class K8SSpec extends BaseGSpec {
         while (!found && i <= timeout) {
             Deployment deployment = commonspec.kubernetesClient.getDeployment(deploymentName, namespace);
             try {
-                Assert.assertEquals(deployment.getStatus().getReadyReplicas().intValue(), readyReplicas.intValue(), "# Ready Replicas");
+                Assert.assertEquals(deployment.getStatus().getReadyReplicas() != null ? deployment.getStatus().getReadyReplicas().intValue() : 0, readyReplicas.intValue(), "# Ready Replicas");
                 found = true;
             } catch (AssertionError | Exception e) {
                 getCommonSpec().getLogger().info("Expected replicas ready don't found after " + i + " seconds");
@@ -492,37 +492,44 @@ public class K8SSpec extends BaseGSpec {
         commonspec.kubernetesClient.scaleDeployment(deployment, namespace, instances);
     }
 
-    @When("^I get (pods|deployments|replicasets|services|statefulsets|configmaps|serviceacounts|roles|rolebindings) using the following label filter '(.+?)'( in namespace '(.+?)')? and save it in environment variable '(.+?)'$")
-    public void getPodsLabelSelector(String type, String selector, String namespace, String envVar) {
+    @When("^I get (pods|deployments|replicasets|services|statefulsets|configmaps|serviceacounts|roles|rolebindings) using the following label filter '(.+?)'( in namespace '(.+?)')?( and save it in environment variable '(.*?)')?( and save it in file '(.*?)')?$")
+    public void getPodsLabelSelector(String type, String selector, String namespace, String envVar, String fileName) throws Exception {
+        String result = "";
         switch (type) {
             case "pods":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getPodsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getPodsFilteredByLabel(selector, namespace);
                 break;
             case "deployments":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getDeploymentsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getDeploymentsFilteredByLabel(selector, namespace);
                 break;
             case "replicasets":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getReplicaSetsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getReplicaSetsFilteredByLabel(selector, namespace);
                 break;
             case "services":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getServicesFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getServicesFilteredByLabel(selector, namespace);
                 break;
             case "statefulsets":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getStateFulSetsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getStateFulSetsFilteredByLabel(selector, namespace);
                 break;
             case "configmaps":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getConfigMapsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getConfigMapsFilteredByLabel(selector, namespace);
                 break;
             case "serviceaccounts":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getServiceAccountsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getServiceAccountsFilteredByLabel(selector, namespace);
                 break;
             case "roles":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getRolesFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getRolesFilteredByLabel(selector, namespace);
                 break;
             case "rolebindings":
-                ThreadProperty.set(envVar, commonspec.kubernetesClient.getRolesBindingsFilteredByLabel(selector, namespace));
+                result = commonspec.kubernetesClient.getRolesBindingsFilteredByLabel(selector, namespace);
                 break;
             default:
+        }
+        if (envVar != null) {
+            ThreadProperty.set(envVar, result);
+        }
+        if (fileName != null) {
+            writeInFile(result, fileName);
         }
     }
 
@@ -563,6 +570,11 @@ public class K8SSpec extends BaseGSpec {
     @When("^I set maxReplicas='(\\d+)' in deployment with name '(.+?)' in namespace '(.+?)'$")
     public void setMaxReplicas(Integer maxReplicas, String name, String namespace) {
         commonspec.kubernetesClient.updateHorizontalAutoscaler(namespace, name, maxReplicas);
+    }
+
+    @When("^I set minReplicas='(\\d+)' and maxReplicas='(\\d+)' in deployment with name '(.+?)' in namespace '(.+?)'$")
+    public void setMinMaxReplicas(Integer minReplicas, Integer maxReplicas, String name, String namespace) {
+        commonspec.kubernetesClient.updateHorizontalAutoscaler(namespace, name, minReplicas, maxReplicas);
     }
 
     /**

@@ -1387,6 +1387,17 @@ public class KubernetesClient {
         k8sClient.autoscaling().v1().horizontalPodAutoscalers().inNamespace(namespace).withName(name).edit().editSpec().withMaxReplicas(maxReplicas).endSpec().done();
     }
 
+    /**
+     * kubectl patch hpa <deployment> -n <namespace> -p '{"spec":{"minReplicas": <number>, "maxReplicas": <number>}}'
+     *
+     * @param namespace Namespace
+     * @param name Deployment name
+     * @param maxReplicas Max replicas
+     */
+    public void updateHorizontalAutoscaler(String namespace, String name, int minReplicas, int maxReplicas) {
+        k8sClient.autoscaling().v1().horizontalPodAutoscalers().inNamespace(namespace).withName(name).edit().editSpec().withMinReplicas(minReplicas).withMaxReplicas(maxReplicas).endSpec().done();
+    }
+
     public void copyFileToPod(String podName, String namespace, String filePath, String destinationPath) {
         k8sClient.pods().inNamespace(namespace).withName(podName).file(destinationPath).upload(Paths.get(filePath));
     }
