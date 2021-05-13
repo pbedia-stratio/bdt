@@ -98,28 +98,34 @@ public class KubernetesClient {
             return;
         }
 
-        String daedalusSystem = "keos-workspaces.int.stratio.com";
-        String workspaceName = "keos-workspace-" + clusterName;
-        String workspaceURL = "http://" + daedalusSystem + "/" + workspaceName + ".tgz";
+        if (System.getProperty("CLUSTER_KUBE_CONFIG_PATH") != null) {
+            ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", System.getProperty("CLUSTER_KUBE_CONFIG_PATH"));
+            ThreadProperty.set("CLUSTER_SSH_USER", System.getProperty("CLUSTER_SSH_USER") != null ? System.getProperty("CLUSTER_SSH_USER") : "NotSet");
+            ThreadProperty.set("CLUSTER_SSH_PEM_PATH", System.getProperty("CLUSTER_SSH_PEM_PATH") != null ? System.getProperty("CLUSTER_SSH_PEM_PATH") : "NotSet");
+        } else {
+            String daedalusSystem = "keos-workspaces.int.stratio.com";
+            String workspaceName = "keos-workspace-" + clusterName;
+            String workspaceURL = "http://" + daedalusSystem + "/" + workspaceName + ".tgz";
 
-        // Download workspace
-        String commandWget = "wget " + workspaceURL;
-        commonspec.runLocalCommand(commandWget);
+            // Download workspace
+            String commandWget = "wget " + workspaceURL;
+            commonspec.runLocalCommand(commandWget);
 
-        // Untar workspace
-        CommandExecutionSpec commandExecutionSpec = new CommandExecutionSpec(commonspec);
-        String commandUntar = "tar -C target/test-classes/ -xvf " + workspaceName + ".tgz";
-        commandExecutionSpec.executeLocalCommand(commandUntar, null, null);
+            // Untar workspace
+            CommandExecutionSpec commandExecutionSpec = new CommandExecutionSpec(commonspec);
+            String commandUntar = "tar -C target/test-classes/ -xvf " + workspaceName + ".tgz";
+            commandExecutionSpec.executeLocalCommand(commandUntar, null, null);
 
-        // Clean
-        String commandRmTgz = "rm " + workspaceName + ".tgz";
-        commandExecutionSpec.executeLocalCommand(commandRmTgz, null, null);
+            // Clean
+            String commandRmTgz = "rm " + workspaceName + ".tgz";
+            commandExecutionSpec.executeLocalCommand(commandRmTgz, null, null);
 
-        // Obtain and export values
-        String daedalusJson = commonspec.retrieveData(workspaceName + "/keos.json", "json");
-        ThreadProperty.set("CLUSTER_SSH_USER", commonspec.getJSONPathString(daedalusJson, "$.infra.ssh_user", null).replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\"", ""));
-        ThreadProperty.set("CLUSTER_SSH_PEM_PATH", "./target/test-classes/" + workspaceName + "/key");
-        ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", "./target/test-classes/" + workspaceName + "/.kube/config");
+            // Obtain and export values
+            String daedalusJson = commonspec.retrieveData(workspaceName + "/keos.json", "json");
+            ThreadProperty.set("CLUSTER_SSH_USER", commonspec.getJSONPathString(daedalusJson, "$.infra.ssh_user", null).replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\"", ""));
+            ThreadProperty.set("CLUSTER_SSH_PEM_PATH", "./target/test-classes/" + workspaceName + "/key");
+            ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", "./target/test-classes/" + workspaceName + "/.kube/config");
+        }
 
         // Connect to Kubernetes
         getInstance().connect(ThreadProperty.get("CLUSTER_KUBE_CONFIG_PATH"));
