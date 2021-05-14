@@ -1252,10 +1252,10 @@ public class CCTSpec extends BaseGSpec {
      * @param jsonFile : marathon json to deploy
      * @throws Exception
      */
-    @Given("^I install service '(.+?)'( in folder '(.+?)')?( with model '(.+?)')?( and version '(.+?)')?( and instance name '(.+?)')? in tenant '(.+?)' using json '(.+?)'$")
-    public void installServiceFromMarathonJson(String service, String folder, String model, String version, String name, String tenant, String jsonFile) throws Exception {
+    @Given("^I install service '(.+?)'( in folder '(.+?)')?( with model '(.+?)')?( and version '(.+?)')?( and instance name '(.+?)')?( in tenant '(.+?)')?( in namespace '(.+?)')? using json '(.+?)'$")
+    public void installServiceFromMarathonJson(String service, String folder, String model, String version, String name, String tenant, String namespace, String jsonFile) throws Exception {
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            installServiceFromCCTKeos(tenant, jsonFile);
+            installServiceFromCCTKeos(jsonFile, tenant, namespace);
         } else {
             installServiceFromCCTDcos(service, folder, model, version, name, tenant, jsonFile);
         }
@@ -1314,12 +1314,22 @@ public class CCTSpec extends BaseGSpec {
         restSpec.sendRequestTimeout(200, 20, "GET", endPointStatus, null, null, serviceName);
     }
 
-    private void installServiceFromCCTKeos(String tenant, String jsonFile) throws Exception {
+    private void installServiceFromCCTKeos(String jsonFile, String tenant, String namespace) throws Exception {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/install?tenant=" + tenant;
+        String endPoint = "/service/cct-orchestrator-service/v1/install";
+        if (tenant != null) {
+            endPoint += "?tenant=" + tenant;
+        }
         String data = this.commonspec.retrieveData(jsonFile, "json");
+        if (namespace != null) {
+            List<List<String>> rawData = Arrays.asList(
+                    Arrays.asList("$.deployment.general.k8sNamespace", "ADD", namespace, "string")
+            );
+            DataTable modifications = DataTable.create(rawData);
+            data = this.commonspec.modifyData(data, "json", modifications);
+        }
 
         Future<Response> response = commonspec.generateRequest("POST", true, null, null, endPoint, data, "json");
         commonspec.setResponse("POST", response.get());
@@ -1396,15 +1406,20 @@ public class CCTSpec extends BaseGSpec {
      * @param tenant  : tenant where service is installed
      * @throws Exception
      */
-    @Given("^I uninstall deployment '(.+?)' from tenant '(.+?)' with schema located at file '(.+?)'$")
-    public void uninstallServiceKeos(String service, String tenant, String jsonFile) throws Exception {
+    @Given("^I uninstall deployment '(.+?)'( from tenant '(.+?)')?( in namespace '(.+?)')? with schema located at file '(.+?)'$")
+    public void uninstallServiceKeos(String service, String tenant, String namespace, String jsonFile) throws Exception {
         JSONObject schemaJson = new JSONObject(this.commonspec.retrieveData(jsonFile, "json"));
         schemaJson.put("applicationId", service + "." + tenant);
-
+        if (namespace != null) {
+            ((JSONObject) ((JSONObject) schemaJson.get("deployment")).get("general")).put("k8sNamespace", namespace);
+        }
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/uninstall?tenant=" + tenant;
+        String endPoint = "/service/cct-orchestrator-service/v1/uninstall";
+        if (tenant != null) {
+            endPoint += "?tenant=" + tenant;
+        }
         Future<Response> response = commonspec.generateRequest("POST", true, null, null, endPoint, schemaJson.toString(), "json");
         commonspec.setResponse("POST", response.get());
 
@@ -1561,21 +1576,31 @@ public class CCTSpec extends BaseGSpec {
      * @param modifications : modifications to perform in the deployed json
      * @throws Exception
      */
-    @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')? with:$")
-    public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile, DataTable modifications) throws Exception {
+    @Given("^I update service '(.+?)'( in folder '(.+?)')?( in tenant '(.+?)')?( in namespace '(.+?)')?( based on version '(.+?)')?( based on json '(.+?)')? with:$")
+    public void updateCCTService(String serviceName, String folder, String tenant, String namespace, String version, String jsonFile, DataTable modifications) throws Exception {
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            updateCCTServiceKeos(tenant, jsonFile, modifications);
+            updateCCTServiceKeos(jsonFile, tenant, namespace, modifications);
         } else {
             updateCCTServiceDcos(serviceName, folder, tenant, version, jsonFile, modifications);
         }
     }
 
-    private void updateCCTServiceKeos(String tenant, String jsonFile, DataTable modifications) throws Exception {
+    private void updateCCTServiceKeos(String jsonFile, String tenant, String namespace, DataTable modifications) throws Exception {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/update?tenant=" + tenant;
+        String endPoint = "/service/cct-orchestrator-service/v1/update";
+        if (tenant != null) {
+            endPoint += "?tenant=" + tenant;
+        }
         String data = this.commonspec.retrieveData(jsonFile, "json");
+        if (namespace != null) {
+            List<List<String>> rawData = Arrays.asList(
+                    Arrays.asList("$.deployment.general.k8sNamespace", "ADD", namespace, "string")
+            );
+            DataTable modificationsAux = DataTable.create(rawData);
+            data = this.commonspec.modifyData(data, "json", modificationsAux);
+        }
 
         String modifiedData;
         if (modifications != null) {
@@ -1681,9 +1706,9 @@ public class CCTSpec extends BaseGSpec {
      * @param version     : version of the deployed service
      * @throws Exception
      */
-    @Given("^I update service '(.+?)'( in folder '(.+?)')? in tenant '(.+?)'( based on version '(.+?)')?( based on json '(.+?)')?$")
-    public void updateCCTService(String serviceName, String folder, String tenant, String version, String jsonFile) throws Exception {
-        updateCCTService(serviceName, folder, tenant, version, jsonFile, null);
+    @Given("^I update service '(.+?)'( in folder '(.+?)')?( in tenant '(.+?)')?( in namespace '(.+?)')?( based on version '(.+?)')?( based on json '(.+?)')?$")
+    public void updateCCTService(String serviceName, String folder, String tenant, String namespace, String version, String jsonFile) throws Exception {
+        updateCCTService(serviceName, folder, tenant, namespace, version, jsonFile, null);
     }
 
 

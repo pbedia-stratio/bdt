@@ -444,12 +444,17 @@ public class K8SSpec extends BaseGSpec {
     public void readLogsInLessEachFromPod(Integer timeout, Integer wait, String podName, String namespace, String expectedLog) throws InterruptedException {
         boolean found = false;
         int i = 0;
+        String log = "";
         while (!found && i <= timeout) {
             try {
-                String log = commonspec.kubernetesClient.getPodLog(podName, namespace);
-                assertThat(log).contains(expectedLog);
-                found = true;
-            } catch (AssertionError | Exception e) {
+                log = commonspec.kubernetesClient.getPodLog(podName, namespace);
+                if (log.contains(expectedLog)) {
+                    found = true;
+                } else {
+                    getCommonSpec().getLogger().info("'" + expectedLog + "' don't found in log after " + i + " seconds");
+                    Thread.sleep(wait * 1000);
+                }
+            } catch (Exception e) {
                 getCommonSpec().getLogger().info("'" + expectedLog + "' don't found in log after " + i + " seconds");
                 if (i >= timeout) {
                     throw e;
@@ -458,6 +463,7 @@ public class K8SSpec extends BaseGSpec {
             }
             i += wait;
         }
+        assertThat(log).contains(expectedLog);
     }
 
     @When("^I delete (pod|deployment|service) with name '(.+?)' in namespace '(.+?)'$")
