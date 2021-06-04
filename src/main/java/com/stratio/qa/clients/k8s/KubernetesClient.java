@@ -222,6 +222,9 @@ public class KubernetesClient {
             obtainJSONInfoAndExpose(commonspec, centralConfigJson, "$.globals.ldap.adminrouterAuthorizedGroup", "LDAP_ADMIN_GROUP", null);
 
             obtainJSONInfoAndExpose(commonspec, centralConfigJson, "$.globals.vault.vaultHost", "KEOS_VAULT_HOST_INTERNAL", null);
+
+            // TODO ARTIFACT_REPOSITORY doesn't appear in configmap, set default value
+            ThreadProperty.set("ARTIFACT_REPOSITORY", System.getProperty("ARTIFACT_REPOSITORY") != null ? System.getProperty("ARTIFACT_REPOSITORY") : "http://qa.int.stratio.com/repository");
         } catch (Exception e) {
             commonspec.getLogger().error("Error reading command center config", e);
         }

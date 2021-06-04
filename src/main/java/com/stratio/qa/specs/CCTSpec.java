@@ -23,7 +23,6 @@ import com.stratio.qa.models.cct.deployApi.DeployedTask;
 import com.stratio.qa.models.cct.deployApi.SandboxItem;
 import com.stratio.qa.models.cct.marathonServiceApi.*;
 import com.stratio.qa.models.mesos.MesosTask;
-import com.stratio.qa.models.mesos.MesosTasksResponse;
 import com.stratio.qa.utils.CCTUtils;
 import com.stratio.qa.utils.ThreadProperty;
 import cucumber.api.java.en.Given;
@@ -1711,6 +1710,10 @@ public class CCTSpec extends BaseGSpec {
         updateCCTService(serviceName, folder, tenant, namespace, version, jsonFile, null);
     }
 
+    @Given("^I upload descriptor for service '(.+?)', model '(.+?)' version '(.+?)' based on '(.+?)'$")
+    public void uploadCCTDescriptor(String service, String model, String version, String originalJson) throws Exception {
+        uploadCCTDescriptor(service, model, version, originalJson, null);
+    }
 
     /**
      * Upload a descriptor
@@ -1724,28 +1727,41 @@ public class CCTSpec extends BaseGSpec {
      */
     @Given("^I upload descriptor for service '(.+?)', model '(.+?)' version '(.+?)' based on '(.+?)' with:$")
     public void uploadCCTDescriptor(String service, String model, String version, String originalJson, DataTable modifications) throws Exception {
-        // Obtain endpoint
-        if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
-            fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+        String endpoint;
+        String op;
+
+        if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
+            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+            op = "PUT";
+        } else {
+            // Obtain endpoint
+            if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
+                fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+            }
+            if (ThreadProperty.get("cct-universe_id") != null) {
+                endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
+                op = "PUT";
+            } else {
+                endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
+                op = "POST";
+            }
         }
 
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endpoint;
-        String op;
-        if (ThreadProperty.get("cct-universe_id") != null) {
-            endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
-            op = "PUT";
-        } else {
-            endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
-            op = "POST";
-        }
-
         // Retrieve data
         String retrievedData = commonspec.retrieveData(originalJson, "json");
         // Modify json
-        String modifiedData = commonspec.modifyData(retrievedData, "json", modifications);
+        String modifiedData = modifications != null ? commonspec.modifyData(retrievedData, "json", modifications) : retrievedData;
+
+        // Update version and model
+        List<List<String>> rawData = Arrays.asList(
+                Arrays.asList("$.data.model", "UPDATE", model, "string"),
+                Arrays.asList("$.data.version", "UPDATE", version, "string")
+        );
+        DataTable modificationsAux = DataTable.create(rawData);
+        modifiedData = this.commonspec.modifyData(modifiedData, "json", modificationsAux);
 
         // Upload new descriptor
         Future<Response> responseUpdate = commonspec.generateRequest(op, true, null, null, endpoint, modifiedData, "json");
@@ -1769,25 +1785,29 @@ public class CCTSpec extends BaseGSpec {
      */
     @Given("^I update descriptor for service '(.+?)', model '(.+?)' version '(.+?)' based on '(.+?)' with:$")
     public void updateCCTDescriptor(String service, String model, String version, String originalJson, DataTable modifications) throws Exception {
-        // Obtain endpoint
-        if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
-            fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+        String endpoint;
+
+        if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
+            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+        } else {
+            // Obtain endpoint
+            if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
+                fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+            }
+            if (ThreadProperty.get("cct-universe_id") != null) {
+                endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
+            } else {
+                endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
+            }
         }
 
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endpoint;
-        if (ThreadProperty.get("cct-universe_id") != null) {
-            endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
-        } else {
-            endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
-        }
-
         // Retrieve data
         String retrievedData = commonspec.retrieveData(originalJson, "json");
         // Modify json
-        String modifiedData = commonspec.modifyData(retrievedData, "json", modifications);
+        String modifiedData = modifications != null ? commonspec.modifyData(retrievedData, "json", modifications) : retrievedData;
 
         // Update descriptor
         Future<Response> responseUpdate = commonspec.generateRequest("PUT", true, null, null, endpoint, modifiedData, "json");
@@ -1809,20 +1829,24 @@ public class CCTSpec extends BaseGSpec {
      */
     @Given("^I delete descriptor for service '(.+?)', model '(.+?)' version '(.+?)'$")
     public void deleteCCTDescriptor(String service, String model, String version) throws Exception {
-        // Obtain endpoint
-        if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
-            fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+        String endpoint;
+
+        if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
+            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+        } else {
+            // Obtain endpoint
+            if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
+                fail("deploy_api_id variable and cct-universe_id are not set. Check deploy-api or cct-universe are installed and @dcos annotation is working properly.");
+            }
+            if (ThreadProperty.get("cct-universe_id") != null) {
+                endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
+            } else {
+                endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
+            }
         }
 
         // Set REST connection
         commonspec.setCCTConnection(null, null);
-
-        String endpoint;
-        if (ThreadProperty.get("cct-universe_id") != null) {
-            endpoint = "/service/" + ThreadProperty.get("cct-universe_id") + "/v1/descriptors/" + service + "/" + model + "/" + version;
-        } else {
-            endpoint = "/service/" + ThreadProperty.get("deploy_api_id") + "/universe/" + service + "/" + model + "/" + version + "/descriptor";
-        }
 
         // Delete descriptor
         Future<Response> responseUpdate = commonspec.generateRequest("DELETE", true, null, null, endpoint, "", "json");
