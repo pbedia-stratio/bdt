@@ -82,7 +82,7 @@ public class SeleniumSpec extends BaseGSpec {
         if (path != null) {
             assertThat(path).isNotEmpty();
         }
-        path = path == null ? "" : path;
+        String appStartingPoint = path == null ? "" : path;
 
         if (commonspec.getWebHost() == null) {
             throw new Exception("Web host has not been set");
@@ -98,7 +98,7 @@ public class SeleniumSpec extends BaseGSpec {
 
         String webURL = protocol + commonspec.getWebHost() + commonspec.getWebPort();
 
-        commonspec.getDriver().get(webURL + path);
+        commonspec.getDriver().get(webURL + appStartingPoint);
         commonspec.setParentWindow(commonspec.getDriver().getWindowHandle());
     }
 
