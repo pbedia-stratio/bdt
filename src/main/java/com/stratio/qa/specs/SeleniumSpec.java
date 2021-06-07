@@ -789,6 +789,21 @@ public class SeleniumSpec extends BaseGSpec {
     }
 
     /**
+     * Takes the attribute of a webElement and stores it in the thread environment variable passed as parameter
+     *
+     * @param attribute attribute from element to be retrieved
+     * @param index     position of the element in the array of webElements found
+     * @param envVar    name of the thread environment variable where to store the text
+     */
+    @Then("^I save attribute '(.+?)' of element in index '(\\d+)' in environment variable '(.+?)'$")
+    public void saveAttributeWebElementInEnvVar(String attribute, Integer index, String envVar) {
+        assertThat(this.commonspec, scenario, commonspec.getPreviousWebElements()).as("There are less found elements than required")
+                .hasAtLeast(index);
+        String text = commonspec.getPreviousWebElements().getPreviousWebElements().get(index).getAttribute(attribute);
+        ThreadProperty.set(envVar, text);
+    }
+
+    /**
      * Types text if the element exists, if not return a warning message but test continues
      *
      * @param text  text to introduce in the located field
