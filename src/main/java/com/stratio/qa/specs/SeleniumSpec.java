@@ -79,11 +79,10 @@ public class SeleniumSpec extends BaseGSpec {
      */
     @Given("^I( securely)? browse( to '(.+?)')?$")
     public void seleniumBrowse(String isSecured, String path) throws Exception {
-        path = path == null ? "" : path;
-
         if (path != null) {
             assertThat(path).isNotEmpty();
         }
+        path = path == null ? "" : path;
 
         if (commonspec.getWebHost() == null) {
             throw new Exception("Web host has not been set");
