@@ -98,6 +98,8 @@ public class KubernetesClient {
             return;
         }
 
+        boolean setKubernetesHost = false;
+
         if (System.getProperty("CLUSTER_KUBE_CONFIG_PATH") != null) {
             ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", System.getProperty("CLUSTER_KUBE_CONFIG_PATH"));
             ThreadProperty.set("CLUSTER_SSH_USER", System.getProperty("CLUSTER_SSH_USER") != null ? System.getProperty("CLUSTER_SSH_USER") : "NotSet");
@@ -125,6 +127,11 @@ public class KubernetesClient {
             ThreadProperty.set("CLUSTER_SSH_USER", commonspec.getJSONPathString(daedalusJson, "$.infra.ssh_user", null).replaceAll("\\[", "").replaceAll("\\]", "").replaceAll("\"", ""));
             ThreadProperty.set("CLUSTER_SSH_PEM_PATH", "./target/test-classes/" + workspaceName + "/key");
             ThreadProperty.set("CLUSTER_KUBE_CONFIG_PATH", "./target/test-classes/" + workspaceName + "/.kube/config");
+            try {
+                commonspec.getJSONPathString(daedalusJson, "$.keos.calico.service_loadbalancer_pools", null);
+            } catch (Exception e) {
+                setKubernetesHost = true;
+            }
         }
 
         // Connect to Kubernetes
@@ -137,7 +144,9 @@ public class KubernetesClient {
         getK8sWorkerAndIngressHosts();
 
         // Save IP in /etc/hosts
-        commonspec.getETCHOSTSManagementUtils().addK8sHost(ThreadProperty.get("WORKER_IP"), ThreadProperty.get("KEOS_SIS_HOST") + " " + ThreadProperty.get("KEOS_OAUTH2_PROXY_HOST"));
+        if (setKubernetesHost) {
+            commonspec.getETCHOSTSManagementUtils().addK8sHost(ThreadProperty.get("WORKER_IP"), ThreadProperty.get("KEOS_SIS_HOST") + " " + ThreadProperty.get("KEOS_OAUTH2_PROXY_HOST"));
+        }
 
         // Set variables from command-center-config configmap
         getK8sCCTConfig(commonspec);
