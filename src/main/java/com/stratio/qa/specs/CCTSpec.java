@@ -1218,7 +1218,7 @@ public class CCTSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+        String endPoint = "/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
         Future<Response> response = commonspec.generateRequest("GET", false, null, null, endPoint, "", null);
         commonspec.setResponse("GET", response.get());
 
@@ -1317,7 +1317,7 @@ public class CCTSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/install";
+        String endPoint = "/cct-orchestrator-service/v1/install";
         if (tenant != null) {
             endPoint += "?tenant=" + tenant;
         }
@@ -1415,7 +1415,7 @@ public class CCTSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/uninstall";
+        String endPoint = "/cct-orchestrator-service/v1/uninstall";
         if (tenant != null) {
             endPoint += "?tenant=" + tenant;
         }
@@ -1588,7 +1588,7 @@ public class CCTSpec extends BaseGSpec {
         // Set REST connection
         commonspec.setCCTConnection(null, null);
 
-        String endPoint = "/service/cct-orchestrator-service/v1/update";
+        String endPoint = "/cct-orchestrator-service/v1/update";
         if (tenant != null) {
             endPoint += "?tenant=" + tenant;
         }
@@ -1731,7 +1731,7 @@ public class CCTSpec extends BaseGSpec {
         String op;
 
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+            endpoint = "/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
             op = "PUT";
         } else {
             // Obtain endpoint
@@ -1788,7 +1788,7 @@ public class CCTSpec extends BaseGSpec {
         String endpoint;
 
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+            endpoint = "/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
         } else {
             // Obtain endpoint
             if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
@@ -1832,7 +1832,7 @@ public class CCTSpec extends BaseGSpec {
         String endpoint;
 
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            endpoint = "/service/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
+            endpoint = "/cct-universe-service/v1/descriptors/" + service + "/" + model + "/" + version;
         } else {
             // Obtain endpoint
             if (ThreadProperty.get("deploy_api_id") == null && ThreadProperty.get("cct-universe_id") == null) {
@@ -1967,7 +1967,7 @@ public class CCTSpec extends BaseGSpec {
      */
     @When("^I( force)? create '(certificate|keytab|password|password_nouser)' '(.+?)' using CCT (with|without) parameters( path '(.+?)')?( cn '(.+?)')?( name '(.+?)')?( alt '(.+?)')?( organization '(.+?)')?( principal '(.+?)')?( realm '(.+?)')?( user '(.+?)')?( password '(.+?)')?$")
     public void createSecretKeos(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password) throws Exception {
-        String baseUrl = "/service/cct-orchestrator-service/v1/secrets";
+        String baseUrl = "/cct-orchestrator-service/v1/secrets";
         String secretTypeAux;
         String secretTypeK8s;
         String urlParams;
@@ -2044,7 +2044,7 @@ public class CCTSpec extends BaseGSpec {
     public void removeSecret(String secretType, String secret, String path) throws Exception {
         String baseUrl;
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            baseUrl = "/service/cct-orchestrator-service/v1/secrets";
+            baseUrl = "/cct-orchestrator-service/v1/secrets";
         } else {
             baseUrl = "/service/" + ThreadProperty.get("deploy_api_id") + "/secrets";
         }
