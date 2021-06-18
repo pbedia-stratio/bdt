@@ -307,7 +307,7 @@ public class CCTSpec extends BaseGSpec {
      * @param logType         stdout / stderr
      * @param lastLinesToRead Last lines to read in log
      * @param service         Service ID
-     * @param taskAttr    Task name
+     * @param taskAttr        Task name
      * @return Last 'lastLinesToRead' or null
      * @throws Exception
      */
@@ -355,8 +355,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Obtain log path through deploy-api service
      *
-     * @param logType      stdout / stderr
-     * @param service      Service ID
+     * @param logType  stdout / stderr
+     * @param service  Service ID
      * @param taskAttr Task name
      * @return Log path or null
      * @throws Exception
@@ -365,7 +365,7 @@ public class CCTSpec extends BaseGSpec {
         DeployedTask deployedTask = this.commonspec.deployApiClient.getDeployedApp(service).getTasks().stream()
                 .filter(expectedTaskStatus != null ? task -> task.getState().equals(expectedTaskStatus) : task -> true)
                 .filter(task -> taskAttrType.equals("ID") ? task.getId().matches(taskAttr) :
-                                taskAttrType.equals("name") ? task.getName().matches(taskAttr) :
+                        taskAttrType.equals("name") ? task.getName().matches(taskAttr) :
                                 taskAttrType.equals("host") ? task.getHost().matches(taskAttr) : task.getCalicoIP().matches(taskAttr))
                 .sorted(Comparator.comparing(DeployedTask::getTimestamp).reversed())
                 .skip(position)
@@ -387,8 +387,8 @@ public class CCTSpec extends BaseGSpec {
     /**
      * Obtain log path through marathon-services service
      *
-     * @param logType      stdout / stderr
-     * @param service      Service ID
+     * @param logType  stdout / stderr
+     * @param service  Service ID
      * @param taskAttr Task name
      * @return Log path or null
      * @throws Exception
@@ -397,7 +397,7 @@ public class CCTSpec extends BaseGSpec {
         DeployedServiceTask deployedServiceTask = this.commonspec.cctMarathonServiceClient.getService(service, 1, 50).getTasks().stream()
                 .filter(expectedTaskStatus != null ? task -> task.getStatus().equals(expectedTaskStatus) : task -> true)
                 .filter(task -> taskAttrType.equals("ID") ? task.getId().matches(taskAttr) :
-                                taskAttrType.equals("name") ? task.getName().matches(taskAttr) :
+                        taskAttrType.equals("name") ? task.getName().matches(taskAttr) :
                                 taskAttrType.equals("host") ? task.getHost().matches(taskAttr) : task.getSecuredHost().matches(taskAttr))
                 .sorted(Comparator.comparing(DeployedServiceTask::getTimestamp).reversed())
                 .skip(position)
@@ -1886,6 +1886,11 @@ public class CCTSpec extends BaseGSpec {
         ThreadProperty.set(envVar, commonspec.getResponse().getResponse());
     }
 
+    @Deprecated
+    public void createSecret(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password) throws Exception {
+        createSecret(force, secretType, secret, withOrWithout, path, cn, name, alt, organizationName, principal, realm, user, password, null);
+    }
+
     /**
      * Create secret
      *
@@ -1904,10 +1909,10 @@ public class CCTSpec extends BaseGSpec {
      * @param password
      * @throws Exception
      */
-    @When("^I( force)? create '(certificate|keytab|password|password_nouser)' '(.+?)' using deploy-api (with|without) parameters( path '(.+?)')?( cn '(.+?)')?( name '(.+?)')?( alt '(.+?)')?( organization '(.+?)')?( principal '(.+?)')?( realm '(.+?)')?( user '(.+?)')?( password '(.+?)')?$")
-    public void createSecret(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password) throws Exception {
+    @When("^I( force)? create '(certificate|keytab|password|password_nouser|password_custom)' '(.+?)' using deploy-api (with|without) parameters( path '(.+?)')?( cn '(.+?)')?( name '(.+?)')?( alt '(.+?)')?( organization '(.+?)')?( principal '(.+?)')?( realm '(.+?)')?( user '(.+?)')?( password '(.+?)')?( customPasswordContentFile '(.+?)')?$")
+    public void createSecret(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password, String customPasswordContentFile) throws Exception {
         if (ThreadProperty.get("isKeosEnv") != null && ThreadProperty.get("isKeosEnv").equals("true")) {
-            createSecretKeos(force, secretType, secret, withOrWithout, path, cn, name, alt, organizationName, principal, realm, user, password);
+            createSecretKeos(force, secretType, secret, withOrWithout, path, cn, name, alt, organizationName, principal, realm, user, password, customPasswordContentFile);
         } else {
             String baseUrl = "/service/" + ThreadProperty.get("deploy_api_id") + "/secrets";
             String secretTypeAux;
@@ -1937,14 +1942,23 @@ public class CCTSpec extends BaseGSpec {
                 String pathAux = path != null ? path.replaceAll("/", "%2F") + "%2F" + secret : "%2Fuserland%2F" + secretTypeAux + "%2F" + secret;
                 restSpec.sendRequestNoDataTable("DELETE", baseUrl + "?path=" + pathAux, null, null, null);
             }
-            if (!secretType.equals("password_nouser")) {
+            if (!secretType.equals("password_nouser") && !secretType.equals("password_custom")) {
                 restSpec.sendRequestNoDataTable("POST", baseUrl + "/" + secretType + urlParams, null, null, null);
             } else {
                 String pathAux = (path != null ? path.replaceAll("/", "%2F") + "%2F" + secret : "%2Fuserland%2Fpasswords%2F" + secret) + "%2F" + (name != null ? name : secret);
                 String filePath = createCustomSecretFile(password != null ? password : secret);
+                if (secretType.equals("password_custom")) {
+                    pathAux = path != null ? path.replaceAll("/", "%2F") + "%2F" + secret : "%2Fuserland%2Fpasswords%2F" + secret;
+                    filePath = customPasswordContentFile;
+                }
                 restSpec.sendRequestNoDataTable("POST", baseUrl + "/custom?path=" + pathAux, null, filePath, "json");
             }
         }
+    }
+
+    @Deprecated
+    public void createSecretKeos(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password) throws Exception {
+        createSecretKeos(force, secretType, secret, withOrWithout, path, cn, name, alt, organizationName, principal, realm, user, password, null);
     }
 
     /**
@@ -1965,8 +1979,8 @@ public class CCTSpec extends BaseGSpec {
      * @param password
      * @throws Exception
      */
-    @When("^I( force)? create '(certificate|keytab|password|password_nouser)' '(.+?)' using CCT (with|without) parameters( path '(.+?)')?( cn '(.+?)')?( name '(.+?)')?( alt '(.+?)')?( organization '(.+?)')?( principal '(.+?)')?( realm '(.+?)')?( user '(.+?)')?( password '(.+?)')?$")
-    public void createSecretKeos(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password) throws Exception {
+    @When("^I( force)? create '(certificate|keytab|password|password_nouser)' '(.+?)' using CCT (with|without) parameters( path '(.+?)')?( cn '(.+?)')?( name '(.+?)')?( alt '(.+?)')?( organization '(.+?)')?( principal '(.+?)')?( realm '(.+?)')?( user '(.+?)')?( password '(.+?)')?( customPasswordContentFile '(.+?)')?$")
+    public void createSecretKeos(String force, String secretType, String secret, String withOrWithout, String path, String cn, String name, String alt, String organizationName, String principal, String realm, String user, String password, String customPasswordContentFile) throws Exception {
         String baseUrl = "/cct-orchestrator-service/v1/secrets";
         String secretTypeAux;
         String secretTypeK8s;
