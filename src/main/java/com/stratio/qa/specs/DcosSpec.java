@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import org.assertj.core.api.Assertions;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.openqa.selenium.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -142,32 +143,76 @@ public class DcosSpec extends BaseGSpec {
     @Given("^I( do not)? set sso( governance)? token using host '(.+?)' with user '(.+?)' and password '(.+?)'( and tenant '(.+?)')?( without host name verification)?( without login path)?$")
     public void setGoSecSSOCookie(String set, String gov, String ssoHost, String userName, String passWord, String tenant, String hostVerifier, String pathWithoutLogin) throws Exception {
         if (set == null) {
-            GosecSSOUtils ssoUtils = new GosecSSOUtils(ssoHost, userName, passWord, tenant, gov);
-            ssoUtils.setVerifyHost(hostVerifier == null);
-            HashMap<String, String> ssoCookies = ssoUtils.ssoTokenGenerator(pathWithoutLogin == null);
+            if (System.getProperty("ADFS_ENABLED") == null || !System.getProperty("ADFS_ENABLED").equalsIgnoreCase("yes")) {
+                GosecSSOUtils ssoUtils = new GosecSSOUtils(ssoHost, userName, passWord, tenant, gov);
+                ssoUtils.setVerifyHost(hostVerifier == null);
+                HashMap<String, String> ssoCookies = ssoUtils.ssoTokenGenerator(pathWithoutLogin == null);
 
-            String[] tokenList = {"user", "dcos-acs-auth-cookie"};
-            if (gov != null) {
-                tokenList = new String[]{"user", "dcos-acs-auth-cookie", "stratio-governance-auth"};
-            }
-            List<com.ning.http.client.cookie.Cookie> cookiesAtributes = this.commonspec.addSsoToken(ssoCookies, tokenList);
+                String[] tokenList = {"user", "dcos-acs-auth-cookie"};
+                if (gov != null) {
+                    tokenList = new String[]{"user", "dcos-acs-auth-cookie", "stratio-governance-auth"};
+                }
+                List<com.ning.http.client.cookie.Cookie> cookiesAtributes = this.commonspec.addSsoToken(ssoCookies, tokenList);
 
-            this.commonspec.getLogger().debug("Cookies to set:");
-            for (String cookie:tokenList) {
-                this.commonspec.getLogger().debug("\t" + cookie + ":" + ssoCookies.get(cookie));
-            }
+                this.commonspec.getLogger().debug("Cookies to set:");
+                for (String cookie : tokenList) {
+                    this.commonspec.getLogger().debug("\t" + cookie + ":" + ssoCookies.get(cookie));
+                }
 
-            if (ssoCookies.get("dcos-acs-auth-cookie") != null) {
-                ThreadProperty.set("dcosAuthCookie", ssoCookies.get("dcos-acs-auth-cookie"));
-            }
+                if (ssoCookies.get("dcos-acs-auth-cookie") != null) {
+                    ThreadProperty.set("dcosAuthCookie", ssoCookies.get("dcos-acs-auth-cookie"));
+                }
 
-            if (ssoCookies.get("stratio-governance-auth") != null) {
-                ThreadProperty.set("dcosGovernanceAuthCookie", ssoCookies.get("stratio-governance-auth"));
+                if (ssoCookies.get("stratio-governance-auth") != null) {
+                    ThreadProperty.set("dcosGovernanceAuthCookie", ssoCookies.get("stratio-governance-auth"));
+                }
+                if (ssoCookies.get("user") != null) {
+                    ThreadProperty.set("dcosUserCookie", ssoCookies.get("user"));
+                }
+                commonspec.setCookies(cookiesAtributes);
+            } else {
+                // TODO: Revamp selenium steps in order to remove sleeps
+                // Access to classic login form
+                SeleniumSpec selenium = new SeleniumSpec(this.commonspec);
+                selenium.setupApp(ThreadProperty.get("EOS_ACCESS_POINT"), ":443");
+                selenium.seleniumBrowse("securely", null);
+                Thread.sleep(3000);
+                selenium.assertSeleniumNElementExistsOnTimeOut(30, 5, 1, "id", "oauth-iframe");
+                selenium.seleniumSwitchFrame(0);
+                // Get ADFS url from link
+                selenium.assertSeleniumNElementExistsOnTimeOut(30, 5, 1, "xpath", "//*[@id=\"link-saml\"]/a");
+                selenium.saveAttributeWebElementInEnvVar("href", 0, "adfsHrefFull");
+                String adfsHref = ThreadProperty.get("adfsHrefFull").replaceFirst("https://", "");
+                // Access to ADFS login form
+                selenium.setupApp(adfsHref, ""); // Set an empty port instead a null one so ":80" is not added to the end of the URL
+                selenium.seleniumBrowse("securely", null);
+                Thread.sleep(2000);
+                selenium.assertSeleniumNElementExistsOnTimeOut(30, 5, 1, "name", "loginfmt");
+                selenium.seleniumType(ThreadProperty.get("DCOS_USER"), 0);
+                Thread.sleep(2000);
+                selenium.assertSeleniumNElementExists(1, "id", "idSIButton9");
+                selenium.seleniumClick(0);
+                Thread.sleep(2000);
+                selenium.assertSeleniumNElementExistsOnTimeOut(30, 5, 1, "name", "passwd");
+                selenium.seleniumType(ThreadProperty.get("DCOS_PASSWORD"), 0);
+                Thread.sleep(2000);
+                selenium.assertSeleniumNElementExists(1, "id", "idSIButton9");
+                selenium.seleniumClick(0);
+                Thread.sleep(2000);
+                selenium.assertSeleniumNElementExistsOnTimeOut(30, 5, 1, "name", "DontShowAgain");
+                selenium.seleniumClick(0);
+                selenium.assertSeleniumNElementExists(1, "id", "idSIButton9");
+                selenium.seleniumClick(0);
+                Thread.sleep(4000);
+                // Check that we're logged in
+//                selenium.assertSeleniumNElementExistsOnTimeOut(12, 3, 1, "xpath", "//*[@id='application']/div/div[1]/div[2]/span[1]/span/span[contains(text(), '" + ThreadProperty.get("DCOS_USER") + "')]");
+                // Set cookies
+                commonspec.setSeleniumCookies(commonspec.getDriver().manage().getCookies());
+                // Clean Driver for further cookies setting
+                commonspec.getDriver().manage().deleteAllCookies();
+                commonspec.getDriver().get("chrome://settings/clearBrowserData");
+                commonspec.getDriver().findElementByXPath("//settings-ui").sendKeys(Keys.ENTER);
             }
-            if (ssoCookies.get("user") != null) {
-                ThreadProperty.set("dcosUserCookie", ssoCookies.get("user"));
-            }
-            commonspec.setCookies(cookiesAtributes);
         }
     }
 
@@ -1033,6 +1078,11 @@ public class DcosSpec extends BaseGSpec {
             case "EOS_ACCESS_POINT":
                 value = value.replaceAll("https://", "");
                 break;
+            case "DCOS_USER":
+                if (System.getProperty("ADFS_ENABLED") != null && System.getProperty("ADFS_ENABLED").equalsIgnoreCase("yes")) {
+                    value = System.getProperty("DCOS_USER") != null ? System.getProperty("DCOS_USER") : value;
+                }
+                break;
             default:
                 break;
         }
@@ -1455,6 +1505,11 @@ public class DcosSpec extends BaseGSpec {
                 break;
             case "ACCESS_POINT":
                 value = value.replaceAll("https://", "");
+                break;
+            case "ADMIN_USER":
+                if (System.getProperty("ADFS_ENABLED") != null && System.getProperty("ADFS_ENABLED").equalsIgnoreCase("yes")) {
+                    value = System.getProperty("DCOS_USER") != null ? System.getProperty("DCOS_USER") : value;
+                }
                 break;
             default:
                 break;

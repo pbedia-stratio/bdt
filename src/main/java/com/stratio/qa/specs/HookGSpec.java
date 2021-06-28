@@ -268,6 +268,7 @@ public class HookGSpec extends BaseGSpec {
             commonspec.getLogger().debug("Shutdown Selenium client");
             commonspec.getDriver().close();
             commonspec.getDriver().quit();
+            commonspec.setDriver(null);
         }
     }
 
@@ -314,6 +315,9 @@ public class HookGSpec extends BaseGSpec {
 
     @Before(order = ORDER_20, value = "@dcos")
     public void dcosSetup() throws Exception {
+        if (System.getProperty("ADFS_ENABLED") != null && System.getProperty("ADFS_ENABLED").equalsIgnoreCase("yes")) {
+            this.seleniumSetup();
+        }
         DcosSpec dcosSpec = new DcosSpec(commonspec);
         MiscSpec miscspec = new MiscSpec(commonspec);
         dcosSpec.obtainBasicInfoFromWorkspace();
@@ -333,5 +337,8 @@ public class HookGSpec extends BaseGSpec {
 
     @After(order = ORDER_20, value = "@dcos")
     public void dcosCleanup() {
+        if (System.getProperty("ADFS_ENABLED") != null && System.getProperty("ADFS_ENABLED").equalsIgnoreCase("yes")) {
+            this.seleniumTeardown();
+        }
     }
 }
